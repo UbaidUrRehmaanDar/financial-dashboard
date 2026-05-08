@@ -8,7 +8,7 @@ const Button = React.forwardRef(({
   showArrow = false,
   ...props 
 }, ref) => {
-  const baseClasses = "inline-flex items-center justify-center text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background";
+  const baseClasses = "inline-flex items-center justify-center text-sm font-normal transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background hover:font-bold";
   
   const variants = {
     default: "bg-white text-black hover:bg-white hover:text-black border border-white hover:border-white",
@@ -20,10 +20,10 @@ const Button = React.forwardRef(({
   };
   
   const sizes = {
-    default: "h-10 py-2.5 px-5 rounded-lg hover:rounded-none",
-    sm: "h-9 px-3 rounded-md hover:rounded-none",
-    lg: "h-11 px-8 rounded-lg hover:rounded-none",
-    icon: "h-10 w-10 rounded-lg hover:rounded-none"
+    default: "h-12 py-3 px-6 rounded-lg hover:rounded-none text-base",
+    sm: "h-10 px-4 rounded-md hover:rounded-none text-sm",
+    lg: "h-14 px-10 rounded-lg hover:rounded-none text-lg",
+    icon: "h-12 w-12 rounded-lg hover:rounded-none"
   };
 
   return (

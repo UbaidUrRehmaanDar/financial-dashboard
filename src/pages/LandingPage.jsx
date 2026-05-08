@@ -122,7 +122,7 @@ const LandingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
         >
-          <Button showArrow>
+          <Button showArrow onClick={() => { window.location.hash = 'auth' }}>
             Launch Dashboard
           </Button>
           <Button variant="outline" showArrow onClick={() => { window.location.hash = 'market' }}>

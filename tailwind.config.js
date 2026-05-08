@@ -5,15 +5,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#09090b",
-        foreground: "#fafafa",
-        card: "#18181b",
-        "card-foreground": "#fafafa",
-        primary: "#6366f1",
-        "primary-foreground": "#ffffff",
-        muted: "#71717a",
-        "muted-foreground": "#a1a1aa",
-        border: "#27272a",
+        background:        'var(--color-background)',
+        foreground:        'var(--color-foreground)',
+        card:              'var(--color-card)',
+        'card-foreground': 'var(--color-card-foreground)',
+        primary:           'var(--color-primary)',
+        'primary-foreground': 'var(--color-primary-foreground)',
+        muted:             'var(--color-muted)',
+        'muted-foreground':'var(--color-muted-foreground)',
+        border:            'var(--color-border)',
       },
       borderRadius: { lg: "0.5rem", md: "0.375rem", sm: "0.25rem" },
       fontFamily: {
