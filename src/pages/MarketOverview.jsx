@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Search } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -270,8 +270,7 @@ export default function MarketOverview() {
               className={cn(
                 'w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2.5',
                 'text-sm text-foreground placeholder:text-muted-foreground',
-                'focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60',
-                'transition-colors duration-150',
+                'focus:outline-none transition-colors duration-150',
               )}
             />
           </div>

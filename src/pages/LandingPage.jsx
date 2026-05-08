@@ -3,8 +3,24 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, BarChart3, Shield, Zap, Activity } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
 
 const LandingPage = () => {
+  const testSupabase = async () => {
+    try {
+      const { data, error } = await supabase.from('price_cache').select('count').limit(1);
+      if (error) {
+        console.error('Supabase Error:', error);
+        alert(`❌ Error: ${error.message}`);
+      } else {
+        console.log('Supabase Data:', data);
+        alert('✅ Supabase connected successfully!');
+      }
+    } catch (err) {
+      console.error('Connection Error:', err);
+      alert(`❌ Connection failed: ${err.message}`);
+    }
+  };
   const tickers = [
     'AAPL +2.4%', 'GOOGL -1.2%', 'MSFT +3.1%', 'AMZN +0.8%', 'TSLA -2.9%', 
     'META +1.5%', 'NVDA +4.2%', 'AMD -0.6%', 'NFLX +2.1%', 'DIS -1.8%'
@@ -109,8 +125,11 @@ const LandingPage = () => {
           <Button showArrow>
             Launch Dashboard
           </Button>
-          <Button variant="outline" showArrow>
+          <Button variant="outline" showArrow onClick={() => { window.location.hash = 'market' }}>
             Explore Demo
+          </Button>
+          <Button variant="outline" onClick={testSupabase}>
+            Test DB
           </Button>
         </motion.div>
       </section>
