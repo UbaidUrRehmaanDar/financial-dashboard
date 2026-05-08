@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Dark theme (default) ─────────────────────────────────────────────────── */
+:root, .dark {
+  --color-background:        #09090b;
+  --color-foreground:        #fafafa;
+  --color-card:              #18181b;
+  --color-card-foreground:   #fafafa;
+  --color-primary:           #6366f1;
+  --color-primary-foreground:#ffffff;
+  --color-muted:             #71717a;
+  --color-muted-foreground:  #a1a1aa;
+  --color-border:            #27272a;
+}
+
+/* ── Light theme ──────────────────────────────────────────────────────────── */
+.light {
+  --color-background:        #ffffff;
+  --color-foreground:        #09090b;
+  --color-card:              #f4f4f5;
+  --color-card-foreground:   #09090b;
+  --color-primary:           #6366f1;
+  --color-primary-foreground:#ffffff;
+  --color-muted:             #71717a;
+  --color-muted-foreground:  #52525b;
+  --color-border:            #e4e4e7;
+}
+
 @layer base {
   * { @apply border-border; }
   body {
@@ -14,7 +40,7 @@
 @layer components {
   .btn-primary { @apply bg-primary text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-200 hover:bg-indigo-400 hover:scale-[1.02] active:scale-[0.98]; }
   .btn-ghost { @apply bg-transparent border border-border text-muted-foreground font-medium px-5 py-2.5 rounded-lg transition-all duration-200 hover:bg-card hover:border-border; }
-  .card-premium { @apply bg-card border border-border rounded-lg p-5 transition-all duration-200 hover:border-zinc-700 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-0.5; }
+  .card-premium { @apply bg-card border border-border rounded-lg p-5 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5; }
   .text-gradient { @apply bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent; }
   .ticker-scroll { animation: ticker 25s linear infinite; }
   .ticker-scroll:hover { animation-play-state: paused; }

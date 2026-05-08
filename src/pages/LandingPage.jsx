@@ -1,11 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, BarChart3, Shield, Zap, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Shield, Zap, Activity, Sun, Moon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/hooks/useTheme';
 
 const LandingPage = () => {
+  const { theme, toggleTheme } = useTheme();
+  
   const testSupabase = async () => {
     try {
       const { data, error } = await supabase.from('price_cache').select('count').limit(1);
@@ -87,6 +90,17 @@ const LandingPage = () => {
 
       {/* Fixed Ticker Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
+        {/* Theme Toggle */}
+        <div className="absolute top-3 right-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleTheme}
+            className="w-10 h-10 p-0 rounded-full"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
+        </div>
         <div className="ticker-scroll overflow-hidden">
           <div className="flex gap-8 py-3 font-mono text-sm text-muted tabular-nowrap">
             {[...tickers, ...tickers].map((ticker, index) => (
