@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer components {
+  .btn-primary { @apply bg-primary text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-200 hover:bg-indigo-400 hover:scale-[1.02] active:scale-[0.98]; }
+  .btn-ghost { @apply bg-transparent border border-border text-muted-foreground font-medium px-5 py-2.5 rounded-lg transition-all duration-200 hover:bg-card hover:border-border; }
+  .card-premium { @apply bg-card border border-border rounded-lg p-5 transition-all duration-200 hover:border-zinc-700 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-0.5; }
+  .text-gradient { @apply bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent; }
+  .ticker-scroll { animation: ticker 25s linear infinite; }
+  .ticker-scroll:hover { animation-play-state: paused; }
+}
+
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-gradient {
+  background: linear-gradient(-45deg, #000000, #0a0a0a, #1a1a1a, #000000);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
