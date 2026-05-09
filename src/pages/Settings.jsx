@@ -1,9 +1,34 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Eye, EyeOff, User } from 'lucide-react';
+import { Copy, Check, Eye, EyeOff, ChevronDown, Search } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/util';
+
+// ─── Theme accent colours ─────────────────────────────────────────────────────
+
+const ACCENTS = [
+  { id: 'zinc',    label: 'Default',  hex: '#a1a1aa' },
+  { id: 'indigo',  label: 'Indigo',   hex: '#6366f1' },
+  { id: 'emerald', label: 'Emerald',  hex: '#10b981' },
+  { id: 'rose',    label: 'Rose',     hex: '#f43f5e' },
+  { id: 'amber',   label: 'Amber',    hex: '#f59e0b' },
+  { id: 'sky',     label: 'Sky',      hex: '#0ea5e9' },
+  { id: 'violet',  label: 'Violet',   hex: '#8b5cf6' },
+];
+
+// ─── Currency options ─────────────────────────────────────────────────────────
+
+const CURRENCIES = [
+  { value: 'USD', label: 'US Dollar',       flag: '🇺🇸' },
+  { value: 'EUR', label: 'Euro',            flag: '🇪🇺' },
+  { value: 'GBP', label: 'British Pound',   flag: '🇬🇧' },
+  { value: 'PKR', label: 'Pakistani Rupee', flag: '🇵🇰' },
+  { value: 'JPY', label: 'Japanese Yen',    flag: '🇯🇵' },
+  { value: 'CAD', label: 'Canadian Dollar', flag: '🇨🇦' },
+  { value: 'AUD', label: 'Australian Dollar',flag: '🇦🇺' },
+  { value: 'CHF', label: 'Swiss Franc',     flag: '🇨🇭' },
+];
 
 // ─── Password strength ────────────────────────────────────────────────────────
 
@@ -24,19 +49,181 @@ function Toggle({ enabled, onToggle }) {
       onClick={onToggle}
       className={cn(
         'relative w-11 h-6 rounded-full border transition-colors duration-200 focus:outline-none',
-        enabled ? 'bg-white border-white' : 'bg-zinc-800 border-border',
+        enabled ? 'bg-foreground border-foreground' : 'bg-zinc-800 border-border',
       )}
     >
       <motion.span
         layout
         transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        className={cn(
-          'absolute top-0.5 w-5 h-5 rounded-full',
-          enabled ? 'bg-black' : 'bg-zinc-500',
-        )}
+        className={cn('absolute top-0.5 w-5 h-5 rounded-full', enabled ? 'bg-background' : 'bg-zinc-500')}
         style={{ left: enabled ? 'calc(100% - 22px)' : '2px' }}
       />
     </button>
+  );
+}
+
+// ─── Theme Accent Slider ──────────────────────────────────────────────────────
+
+function AccentSlider({ value, onChange }) {
+  const idx      = ACCENTS.findIndex((a) => a.id === value);
+  const current  = ACCENTS[idx] ?? ACCENTS[0];
+  const trackRef = useRef(null);
+
+  const handleTrackClick = (e) => {
+    const rect  = trackRef.current.getBoundingClientRect();
+    const pct   = (e.clientX - rect.left) / rect.width;
+    const i     = Math.round(pct * (ACCENTS.length - 1));
+    onChange(ACCENTS[Math.max(0, Math.min(ACCENTS.length - 1, i))].id);
+  };
+
+  const thumbPct = (idx / (ACCENTS.length - 1)) * 100;
+
+  return (
+    <div className="space-y-3">
+      {/* Colour dots */}
+      <div className="flex items-center justify-between">
+        {ACCENTS.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => onChange(a.id)}
+            title={a.label}
+            className={cn(
+              'w-7 h-7 rounded-full border-2 transition-all duration-150',
+              value === a.id ? 'scale-125 border-foreground shadow-lg' : 'border-transparent hover:scale-110',
+            )}
+            style={{ background: a.hex }}
+          />
+        ))}
+      </div>
+
+      {/* Slider track */}
+      <div
+        ref={trackRef}
+        onClick={handleTrackClick}
+        className="relative h-2 rounded-full cursor-pointer"
+        style={{
+          background: `linear-gradient(to right, ${ACCENTS.map((a) => a.hex).join(', ')})`,
+        }}
+      >
+        {/* Thumb */}
+        <motion.div
+          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-background shadow-lg cursor-grab active:cursor-grabbing"
+          style={{ left: `${thumbPct}%`, background: current.hex, x: '-50%' }}
+          animate={{ left: `${thumbPct}%` }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        />
+      </div>
+
+      {/* Label */}
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full" style={{ background: current.hex }} />
+        <span className="text-xs text-muted-foreground">{current.label}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pretty Combobox ──────────────────────────────────────────────────────────
+
+function Combobox({ value, onChange, options }) {
+  const [open,   setOpen]   = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  const selected = options.find((o) => o.value === value);
+  const filtered = options.filter(
+    (o) =>
+      o.label.toLowerCase().includes(search.toLowerCase()) ||
+      o.value.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => { setOpen((v) => !v); setSearch(''); }}
+        className={cn(
+          'w-full flex items-center justify-between gap-3',
+          'bg-background border border-border rounded-xl px-4 py-3',
+          'text-sm text-foreground transition-colors duration-150',
+          'hover:border-foreground/30 focus:outline-none',
+          open && 'border-foreground/40',
+        )}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="text-lg leading-none">{selected?.flag}</span>
+          <span className="font-medium">{selected?.value}</span>
+          <span className="text-muted-foreground text-xs">{selected?.label}</span>
+        </div>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        </motion.span>
+      </button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0,  scale: 1    }}
+            exit={{   opacity: 0, y: -8, scale: 0.97  }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className={cn(
+              'absolute z-50 top-full mt-2 w-full',
+              'bg-card border border-border rounded-xl shadow-2xl shadow-black/30',
+              'overflow-hidden',
+            )}
+          >
+            {/* Search */}
+            <div className="p-2 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-2 text-xs text-foreground focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Options */}
+            <div className="max-h-52 overflow-y-auto py-1">
+              {filtered.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No results</p>
+              ) : (
+                filtered.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { onChange(opt.value); setOpen(false); }}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100',
+                      'hover:bg-foreground/5 text-left',
+                      value === opt.value && 'bg-foreground/8',
+                    )}
+                  >
+                    <span className="text-base leading-none">{opt.flag}</span>
+                    <span className="font-medium text-foreground">{opt.value}</span>
+                    <span className="text-muted-foreground text-xs flex-1">{opt.label}</span>
+                    {value === opt.value && <Check className="w-3.5 h-3.5 text-foreground flex-shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -53,8 +240,6 @@ function Section({ title, children }) {
   );
 }
 
-// ─── Field wrapper ────────────────────────────────────────────────────────────
-
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -67,36 +252,30 @@ function Field({ label, children }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Settings() {
-  // Profile
-  const [name,      setName]      = useState('Ali Hamza');
-  const [nameErr,   setNameErr]   = useState('');
+  const [name,     setName]     = useState('Ali Hamza');
+  const [nameErr,  setNameErr]  = useState('');
   const email = 'ali@example.com';
 
-  // API key
-  const [copied,    setCopied]    = useState(false);
+  const [copied,   setCopied]   = useState(false);
   const copyTimer = useRef(null);
 
-  // Currency
-  const [currency,  setCurrency]  = useState('USD');
+  const [currency, setCurrency] = useState('USD');
+  const [accent,   setAccent]   = useState('zinc');
 
-  // Notifications
   const [notifs, setNotifs] = useState({
-    priceAlerts:    true,
-    weeklyDigest:   false,
+    priceAlerts:     true,
+    weeklyDigest:    false,
     securityUpdates: true,
   });
 
-  // Password
-  const [password,  setPassword]  = useState('');
-  const [showPw,    setShowPw]    = useState(false);
-  const [pwErr,     setPwErr]     = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw,   setShowPw]   = useState(false);
+  const [pwErr,    setPwErr]    = useState('');
   const strength = getStrength(password);
 
-  // Save state
-  const [saving,   setSaving]   = useState(false);
-  const [saved,    setSaved]    = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
 
-  // ── Handlers ────────────────────────────────────────────────────────────
   const handleNameBlur = () => {
     setNameErr(name.trim().length < 2 ? 'Name must be at least 2 characters.' : '');
   };
@@ -115,21 +294,15 @@ export default function Settings() {
   const handleSave = () => {
     if (nameErr || pwErr) return;
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }, 600);
+    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 600);
   };
 
-  // ── Initials ─────────────────────────────────────────────────────────────
   const initials = name.trim().split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
 
-        {/* Page title */}
         <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
           <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
@@ -137,17 +310,15 @@ export default function Settings() {
 
         <motion.div
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
-          initial="hidden"
-          animate="visible"
+          initial="hidden" animate="visible"
           className="space-y-6"
         >
 
           {/* ── Profile ─────────────────────────────────────────────── */}
           <Section title="Profile">
-            {/* Avatar + name row */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg font-bold text-white tracking-tight">{initials}</span>
+              <div className="w-16 h-16 rounded-full bg-foreground/10 border border-border flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-bold text-foreground tracking-tight">{initials}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium mb-1">Avatar</p>
@@ -157,8 +328,7 @@ export default function Settings() {
 
             <Field label="Display Name">
               <input
-                type="text"
-                value={name}
+                type="text" value={name}
                 onChange={(e) => { setName(e.target.value); setNameErr(''); }}
                 onBlur={handleNameBlur}
                 className={cn(
@@ -175,10 +345,7 @@ export default function Settings() {
             </Field>
 
             <Field label="Email">
-              <input
-                type="email"
-                value={email}
-                readOnly
+              <input type="email" value={email} readOnly
                 className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-muted-foreground focus:outline-none cursor-not-allowed"
               />
             </Field>
@@ -188,10 +355,7 @@ export default function Settings() {
           <Section title="API Access">
             <Field label="API Key">
               <div className="relative">
-                <input
-                  type="text"
-                  value="sk_live_••••••••••••••••"
-                  readOnly
+                <input type="text" value="sk_live_••••••••••••••••" readOnly
                   className="w-full bg-background border border-border rounded-lg px-4 py-2.5 pr-24 text-sm font-mono text-muted-foreground focus:outline-none cursor-not-allowed"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -214,18 +378,17 @@ export default function Settings() {
             </Field>
           </Section>
 
+          {/* ── Appearance ───────────────────────────────────────────── */}
+          <Section title="Appearance">
+            <Field label="Accent Colour">
+              <AccentSlider value={accent} onChange={setAccent} />
+            </Field>
+          </Section>
+
           {/* ── Preferences ──────────────────────────────────────────── */}
           <Section title="Preferences">
             <Field label="Currency">
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none transition-colors appearance-none cursor-pointer"
-              >
-                {['USD', 'EUR', 'GBP', 'PKR'].map((c) => (
-                  <option key={c} value={c} className="bg-zinc-900">{c}</option>
-                ))}
-              </select>
+              <Combobox value={currency} onChange={setCurrency} options={CURRENCIES} />
             </Field>
           </Section>
 
@@ -241,10 +404,7 @@ export default function Settings() {
                   <p className="text-sm font-medium">{label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                 </div>
-                <Toggle
-                  enabled={notifs[key]}
-                  onToggle={() => setNotifs((prev) => ({ ...prev, [key]: !prev[key] }))}
-                />
+                <Toggle enabled={notifs[key]} onToggle={() => setNotifs((prev) => ({ ...prev, [key]: !prev[key] }))} />
               </div>
             ))}
           </Section>
@@ -254,8 +414,7 @@ export default function Settings() {
             <Field label="New Password">
               <div className="relative">
                 <input
-                  type={showPw ? 'text' : 'password'}
-                  value={password}
+                  type={showPw ? 'text' : 'password'} value={password}
                   onChange={(e) => { setPassword(e.target.value); setPwErr(''); }}
                   onBlur={handlePwBlur}
                   className={cn(
@@ -263,17 +422,12 @@ export default function Settings() {
                     pwErr ? 'border-rose-500' : 'border-border',
                   )}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                >
+                <button type="button" onClick={() => setShowPw((v) => !v)} tabIndex={-1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
 
-              {/* Strength meter */}
               {password && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
                   <div className="flex gap-1">
@@ -290,9 +444,7 @@ export default function Settings() {
                   <p className={cn('text-xs font-medium',
                     strength.level === 1 ? 'text-rose-400' :
                     strength.level === 2 ? 'text-yellow-400' : 'text-emerald-400'
-                  )}>
-                    {strength.label}
-                  </p>
+                  )}>{strength.label}</p>
                 </motion.div>
               )}
 
@@ -305,18 +457,14 @@ export default function Settings() {
             </Field>
           </Section>
 
-          {/* ── Save button ───────────────────────────────────────────── */}
+          {/* ── Save ─────────────────────────────────────────────────── */}
           <motion.div
             variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}
             className="flex justify-end"
           >
             <motion.div
-              animate={saved ? {
-                scale: [1, 0.98, 1.05, 1],
-                borderColor: ['transparent', '#10b981', '#10b981', 'transparent'],
-              } : { scale: 1 }}
+              animate={saved ? { scale: [1, 0.98, 1.05, 1] } : { scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="rounded-lg"
             >
               <Button onClick={handleSave} disabled={saving} className="gap-2 min-w-36">
                 <AnimatePresence mode="wait">
@@ -326,13 +474,9 @@ export default function Settings() {
                       <Check className="w-4 h-4 text-emerald-400" /> Saved!
                     </motion.span>
                   ) : saving ? (
-                    <motion.span key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                      Saving…
-                    </motion.span>
+                    <motion.span key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Saving…</motion.span>
                   ) : (
-                    <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                      Save Changes
-                    </motion.span>
+                    <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Save Changes</motion.span>
                   )}
                 </AnimatePresence>
               </Button>

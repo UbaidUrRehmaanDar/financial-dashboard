@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Search, Building2, Plus, BarChart2 } from 'lu
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/util';
+import { supabase } from '@/lib/supabase';
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ function ChartPlaceholder({ ticker }) {
 
 // ─── Pulse Watchlist Button ───────────────────────────────────────────────────
 
-function WatchlistButton() {
+function WatchlistButton({ onClick, loading }) {
   return (
     <>
       <style>{`
@@ -155,9 +156,9 @@ function WatchlistButton() {
           100% { transform: scale(1.6);  opacity: 0;   }
         }
       `}</style>
-      <Button size="lg" className="watchlist-btn gap-2">
+      <Button size="lg" className="watchlist-btn gap-2" onClick={onClick} disabled={loading}>
         <Plus className="w-5 h-5" />
-        Add to Watchlist
+        {loading ? 'Adding...' : 'Add to Watchlist'}
       </Button>
     </>
   );
@@ -171,6 +172,8 @@ export default function StockDetail() {
   const [selectedTicker, setSelectedTicker] = useState('');
   const [isLoading,      setIsLoading]      = useState(false);
   const [notFound,       setNotFound]       = useState(false);
+  const [savingWatch,    setSavingWatch]    = useState(false);
+  const [watchMsg,       setWatchMsg]       = useState('');
 
   const runSearch = (raw) => {
     const t = (raw ?? searchQuery).trim().toUpperCase();
@@ -193,6 +196,46 @@ export default function StockDetail() {
   const handleSubmit = (e) => {
     e.preventDefault();
     runSearch();
+  };
+
+  const addToWatchlist = async () => {
+    if (!selectedTicker || !selectedStock) return;
+
+    setSavingWatch(true);
+    setWatchMsg('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please login first');
+        setSavingWatch(false);
+        return;
+      }
+
+      const userId = session.user.id;
+      const { error } = await supabase
+        .from('watchlist')
+        .insert({
+          user_id: userId,
+          symbol: selectedTicker.toUpperCase(),
+          company_name: selectedStock.name || selectedTicker,
+        })
+        .select();
+
+      if (error) {
+        console.error('DB Error:', error);
+        alert('Failed: ' + error.message);
+        setSavingWatch(false);
+        return;
+      }
+
+      setWatchMsg(`${selectedTicker} added to watchlist`);
+    } catch (err) {
+      console.error('[stock detail watchlist]', err);
+      alert('Failed: ' + (err?.message || 'Unexpected error'));
+    } finally {
+      setSavingWatch(false);
+    }
   };
 
   const up = selectedStock ? selectedStock.changePct >= 0 : true;
@@ -353,7 +396,8 @@ export default function StockDetail() {
                           {selectedStock.change >= 0 ? '+' : ''}{fmt(selectedStock.change)}
                         </span>
                       </div>
-                      <WatchlistButton />
+                      <WatchlistButton onClick={addToWatchlist} loading={savingWatch} />
+                      {watchMsg && <p className="text-xs text-emerald-500">{watchMsg}</p>}
                     </Card>
                   </motion.div>
                 </motion.section>
