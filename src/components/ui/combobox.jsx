@@ -148,7 +148,12 @@ export function Combobox({
             )}
 
             {/* Options list */}
-            <div className="max-h-56 overflow-y-auto py-1">
+            <div className="max-h-56 overflow-y-auto py-1 scrollbar-thin"
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'var(--color-border) transparent',
+              }}
+            >
               {filtered.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-5">No results found</p>
               ) : (
