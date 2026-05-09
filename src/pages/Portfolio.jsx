@@ -132,30 +132,70 @@ function AddAssetModal({ onClose, onConfirm }) {
     setError('');
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return alert("Please login first");
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: null } }));
+      }
+
+      console.log('Supabase auth.getSession: start');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('❌ Supabase getSession Error:', sessionError);
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: sessionError } }));
+        }
+        alert(`Failed to get session: ${sessionError.message}`);
+        setSaving(false);
+        return;
+      }
+      console.log('✅ Supabase getSession:', session);
+      if (!session) { alert("Please login"); setSaving(false); return; }
       const userId = session.user.id;
 
-      const symbol = form.ticker.trim();
-      const name = '';
-      const qty = form.qty;
-      const price = form.buyPrice;
+      const formData = {
+        symbol: form.ticker,
+        companyName: '',
+        quantity: form.qty,
+        buyPrice: form.buyPrice,
+        buyDate: new Date().toISOString().split('T')[0],
+      };
+
+      const payload = {
+        user_id: userId, // CRITICAL
+        symbol: formData.symbol?.toUpperCase?.() || formData.symbol,
+        company_name: formData.companyName || formData.symbol,
+        quantity: Number(formData.quantity),
+        buy_price: Number(formData.buyPrice),
+        buy_date: formData.buyDate || new Date().toISOString().split('T')[0]
+      };
+
+      console.log('Attempting insert:', payload);
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.insert', lastDbOperation: 'portfolio.insert', lastPayload: payload, lastError: null, userId } }));
+      }
 
       const { data, error } = await supabase
         .from('portfolio')
-        .insert({
-          user_id: userId,  // CRITICAL: must match auth.uid()
-          symbol: symbol.toUpperCase(),
-          company_name: name || symbol,
-          quantity: Number(qty),
-          buy_price: Number(price),
-          buy_date: new Date().toISOString().split('T')[0]
-        })
+        .insert([payload])
         .select(); // Returns inserted row
 
-      if (error) { console.error('DB Error:', error); alert("Failed: " + error.message); return; }
+      if (error) {
+        console.error('❌ Supabase Insert Error:', {
+          code: error.code,
+          message: error.message,
+          hint: error.hint,
+          details: error.details
+        });
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.insert', lastDbOperation: 'portfolio.insert', lastError: error } }));
+        }
+        alert(`Failed to save: ${error.message}`);
+        setSaving(false);
+        return;
+      }
 
-      if (data) {
+      console.log('✅ Supabase Insert Success:', data);
+      if (data?.[0]) {
+        console.log('✅ Insert succeeded:', data[0]);
         const newHolding = {
           id:       data[0].id,
           symbol:   data[0].symbol,
@@ -163,8 +203,9 @@ function AddAssetModal({ onClose, onConfirm }) {
           buyPrice: data[0].buy_price,
         };
         onConfirm(newHolding);
+        setForm(EMPTY_FORM);
+        onClose();
       }
-      onClose();
 
     } catch (err) {
       console.error('[portfolio confirm]', err);
