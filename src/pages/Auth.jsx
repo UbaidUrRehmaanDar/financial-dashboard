@@ -114,7 +114,7 @@ export default function Auth() {
       </div>
 
       {/* ── Right panel — form ────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative bg-background">
 
         {/* Theme toggle — top right */}
         <button
@@ -163,7 +163,7 @@ export default function Auth() {
           </div>
 
           {/* Tab switcher */}
-          <div className="flex bg-card border border-border rounded-lg p-1 mb-6">
+          <div className="flex bg-foreground/5 border border-border rounded-lg p-1 mb-6">
             {['login', 'signup'].map((m) => (
               <button
                 key={m}

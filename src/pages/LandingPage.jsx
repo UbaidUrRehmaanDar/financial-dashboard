@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, BarChart3, Shield, Zap, Sun, Moon } from 'luc
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
+import { cn } from '@/lib/util';
 
 const LandingPage = () => {
   const { theme, toggleTheme } = useTheme();
@@ -40,7 +41,10 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen animated-gradient text-foreground relative overflow-hidden">
+    <div className={cn(
+      'min-h-screen text-foreground relative overflow-hidden',
+      theme === 'dark' ? 'animated-gradient' : 'bg-background',
+    )}>
       {/* Background Blobs */}
       <motion.div
         className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/30 rounded-full blur-[120px]"
@@ -184,8 +188,8 @@ const LandingPage = () => {
                 transition={{ duration: 0.6, delay: index * 0.1, ease: 'easeOut' }}
               >
                 <Card className="card-premium p-6 h-full">
-                  <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-foreground/10 rounded-lg flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-foreground" />
                   </div>
                   <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
