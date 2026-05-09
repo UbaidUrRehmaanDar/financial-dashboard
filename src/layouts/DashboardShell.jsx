@@ -174,6 +174,10 @@ export default function DashboardShell({ children, page }) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    // Reset to dark mode so landing page looks correct
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+    localStorage.setItem('theme-preference', 'dark');
     window.location.hash = '';
   };
 

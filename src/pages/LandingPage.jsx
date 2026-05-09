@@ -1,10 +1,12 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, BarChart3, Shield, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, TrendingDown, BarChart3, Shield, Zap, Sun, Moon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/useTheme';
 
 const LandingPage = () => {
+  const { theme, toggleTheme } = useTheme();
   const tickers = [
     'AAPL +2.4%', 'GOOGL -1.2%', 'MSFT +3.1%', 'AMZN +0.8%', 'TSLA -2.9%',
     'META +1.5%', 'NVDA +4.2%', 'AMD -0.6%', 'NFLX +2.1%', 'DIS -1.8%'
@@ -55,12 +57,32 @@ const LandingPage = () => {
 
       {/* Fixed Ticker Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="ticker-scroll overflow-hidden">
-          <div className="flex gap-8 py-3 font-mono text-sm text-muted-foreground tabular-nums whitespace-nowrap">
-            {[...tickers, ...tickers].map((ticker, index) => (
-              <span key={index} className="whitespace-nowrap">{ticker}</span>
-            ))}
+        <div className="flex items-center">
+          <div className="ticker-scroll overflow-hidden flex-1">
+            <div className="flex gap-8 py-3 font-mono text-sm text-muted-foreground tabular-nums whitespace-nowrap">
+              {[...tickers, ...tickers].map((ticker, index) => (
+                <span key={index} className="whitespace-nowrap">{ticker}</span>
+              ))}
+            </div>
           </div>
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="flex-shrink-0 w-9 h-9 mr-3 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/8 transition-all duration-150"
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          >
+            <AnimatePresence mode="wait">
+              {theme === 'dark' ? (
+                <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="absolute">
+                  <Sun className="w-4 h-4" />
+                </motion.span>
+              ) : (
+                <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }} className="absolute">
+                  <Moon className="w-4 h-4" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
         </div>
       </div>
 

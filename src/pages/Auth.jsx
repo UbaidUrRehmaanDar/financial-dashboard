@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, TrendingUp, BarChart3, Shield, Zap } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, TrendingUp, BarChart3, Shield, Zap, Sun, Moon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/util';
 import { LogoMark } from '@/components/Logo';
+import { useTheme } from '@/hooks/useTheme';
 
 const FEATURES = [
   { icon: BarChart3, label: 'Real-time market data' },
@@ -14,6 +15,7 @@ const FEATURES = [
 ];
 
 export default function Auth() {
+  const { theme, toggleTheme } = useTheme();
   const [mode, setMode]         = useState('login');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -55,14 +57,7 @@ export default function Auth() {
     <div className="min-h-screen bg-background text-foreground flex">
 
       {/* ── Left panel — branding ─────────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 border-r border-border relative overflow-hidden">
-        {/* Subtle background texture */}
-        <motion.div
-          className="absolute inset-0 bg-card"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-        />
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 border-r border-border relative overflow-hidden bg-zinc-950">
         <motion.div
           className="absolute -top-32 -left-32 w-96 h-96 bg-zinc-700/25 rounded-full blur-[120px]"
           animate={{ scale: [1, 1.1, 1], opacity: [0.25, 0.4, 0.25] }}
@@ -87,10 +82,10 @@ export default function Auth() {
         {/* Main copy */}
         <div className="relative z-10 space-y-6">
           <div>
-            <h2 className="text-4xl font-bold tracking-tight leading-tight mb-3">
+            <h2 className="text-4xl font-bold tracking-tight leading-tight mb-3 text-white">
               Your edge in<br />the market.
             </h2>
-            <p className="text-muted-foreground leading-relaxed max-w-sm">
+            <p className="text-zinc-400 leading-relaxed max-w-sm">
               Track portfolios, analyze sector trends, and get AI-powered insights — all in one clean dashboard.
             </p>
           </div>
@@ -107,20 +102,38 @@ export default function Auth() {
                 <div className="w-7 h-7 bg-white/10 border border-white/15 rounded-md flex items-center justify-center flex-shrink-0">
                   <Icon className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="text-sm text-muted-foreground">{label}</span>
+                <span className="text-sm text-zinc-400">{label}</span>
               </motion.div>
             ))}
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="relative z-10 text-xs text-muted-foreground">
+        <p className="relative z-10 text-xs text-zinc-600">
           © 2024 MarketIQ. All rights reserved.
         </p>
       </div>
 
       {/* ── Right panel — form ────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative">
+
+        {/* Theme toggle — top right */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-5 right-5 w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/8 transition-all duration-150"
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          <AnimatePresence mode="wait">
+            {theme === 'dark' ? (
+              <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }} className="absolute">
+                <Sun className="w-4 h-4" />
+              </motion.span>
+            ) : (
+              <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }} className="absolute">
+                <Moon className="w-4 h-4" />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
 
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-10">
@@ -159,7 +172,7 @@ export default function Auth() {
                 className={cn(
                   'flex-1 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
                   mode === m
-                    ? 'bg-white text-black'
+                    ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >

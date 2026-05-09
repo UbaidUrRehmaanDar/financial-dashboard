@@ -124,23 +124,15 @@ function AddAssetModal({ onClose, onConfirm }) {
     setError('');
 
     try {
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: null } }));
-      }
-
-      console.log('Supabase auth.getSession: start');
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) {
         console.error('❌ Supabase getSession Error:', sessionError);
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: sessionError } }));
-        }
-        alert(`Failed to get session: ${sessionError.message}`);
+        setError('Session error: ' + sessionError.message);
         setSaving(false);
         return;
       }
       console.log('✅ Supabase getSession:', session);
-      if (!session) { alert("Please login"); setSaving(false); return; }
+      if (!session) { setError('Please log in first.'); setSaving(false); return; }
       const userId = session.user.id;
 
       const formData = {
@@ -161,9 +153,6 @@ function AddAssetModal({ onClose, onConfirm }) {
       };
 
       console.log('Attempting insert:', payload);
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.insert', lastDbOperation: 'portfolio.insert', lastPayload: payload, lastError: null, userId } }));
-      }
 
       const { data, error } = await supabase
         .from('portfolio')
@@ -171,16 +160,8 @@ function AddAssetModal({ onClose, onConfirm }) {
         .select(); // Returns inserted row
 
       if (error) {
-        console.error('❌ Supabase Insert Error:', {
-          code: error.code,
-          message: error.message,
-          hint: error.hint,
-          details: error.details
-        });
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.insert', lastDbOperation: 'portfolio.insert', lastError: error } }));
-        }
-        alert(`Failed to save: ${error.message}`);
+        console.error('❌ Supabase Insert Error:', error);
+        setError('Failed to save: ' + error.message);
         setSaving(false);
         return;
       }

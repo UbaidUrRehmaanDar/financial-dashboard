@@ -224,62 +224,25 @@ export default function Watchlist() {
     if (items.find((i) => i.id === sym)) { setError(`${sym} is already in your watchlist.`); return; }
     setError('');
 
-    if (import.meta.env.DEV && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: null } }));
-    }
-
-    console.log('Supabase auth.getSession: start');
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('❌ Supabase getSession Error:', sessionError);
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: sessionError } }));
-      }
-      alert(`Failed to get session: ${sessionError.message}`);
+    if (sessionError || !session) {
+      setError('Please log in first.');
       return;
     }
-    console.log('✅ Supabase getSession:', session);
-    if (!session) { alert("Please login"); return; }
     const userId = session.user.id;
-
-    const formData = {
-      symbol: sym,
-      companyName: COMPANY_NAMES[sym] ?? sym,
-    };
-
-    const payload = {
-      user_id: userId, // CRITICAL
-      symbol: formData.symbol?.toUpperCase?.() || formData.symbol,
-      added_at: new Date().toISOString(),
-    };
-
-    console.log('Attempting insert:', payload);
-    if (import.meta.env.DEV && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'watchlist.insert', lastDbOperation: 'watchlist.insert', lastPayload: payload, lastError: null, userId } }));
-    }
 
     const { data, error } = await supabase
       .from('watchlist')
-      .insert([payload])
+      .insert([{ user_id: userId, symbol: sym, added_at: new Date().toISOString() }])
       .select();
 
     if (error) {
-      console.error('❌ Supabase Insert Error:', {
-        code: error.code,
-        message: error.message,
-        hint: error.hint,
-        details: error.details
-      });
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'watchlist.insert', lastDbOperation: 'watchlist.insert', lastError: error } }));
-      }
-      alert(`Failed to save: ${error.message}`);
+      console.error('[watchlist insert]', error);
+      setError('Failed to save: ' + error.message);
       return;
     }
 
-    console.log('✅ Supabase Insert Success:', data);
     if (data?.[0]) {
-      console.log('✅ Insert succeeded:', data[0]);
       const newItem = {
         id:        data[0].id ?? sym,
         symbol:    sym,

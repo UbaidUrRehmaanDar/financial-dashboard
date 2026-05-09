@@ -207,7 +207,7 @@ export default function StockDetail() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        alert('Please login first');
+        setWatchMsg('Please log in first.');
         setSavingWatch(false);
         return;
       }
@@ -216,23 +216,23 @@ export default function StockDetail() {
       const { error } = await supabase
         .from('watchlist')
         .insert({
-          user_id: userId,
-          symbol: selectedTicker.toUpperCase(),
+          user_id:      userId,
+          symbol:       selectedTicker.toUpperCase(),
           company_name: selectedStock.name || selectedTicker,
         })
         .select();
 
       if (error) {
-        console.error('DB Error:', error);
-        alert('Failed: ' + error.message);
+        console.error('[watchlist insert]', error);
+        setWatchMsg('Failed: ' + error.message);
         setSavingWatch(false);
         return;
       }
 
-      setWatchMsg(`${selectedTicker} added to watchlist`);
+      setWatchMsg(`${selectedTicker} added to watchlist ✓`);
     } catch (err) {
       console.error('[stock detail watchlist]', err);
-      alert('Failed: ' + (err?.message || 'Unexpected error'));
+      setWatchMsg('Failed: ' + (err?.message || 'Unexpected error'));
     } finally {
       setSavingWatch(false);
     }
