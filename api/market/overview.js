@@ -30,6 +30,7 @@ async function fetchQuote(symbol, token) {
 
 export default async function handler(req, res) {
   setCors(res);
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return sendError(res, 405, 'Method not allowed');
@@ -44,8 +45,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = process.env.FINNHUB_KEY;
-    if (!token) return sendError(res, 500, 'Server misconfigured: FINNHUB_KEY missing.');
+    const token = process.env.FINNHUB_KEY || process.env.FINNHUB_API_KEY;
+    if (!token) {
+      return sendError(res, 500, 'Server misconfigured: FINNHUB_KEY missing.', {
+        expected: ['FINNHUB_KEY', 'FINNHUB_API_KEY'],
+      });
+    }
 
     const [indicesRaw, symbolsRaw] = await Promise.all([
       Promise.all(INDICES.map((item) => fetchQuote(item.symbol, token))),

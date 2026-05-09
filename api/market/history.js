@@ -6,6 +6,7 @@ const CACHE_TTL_SECONDS = 600;
 
 export default async function handler(req, res) {
   setCors(res);
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=60');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return sendError(res, 405, 'Method not allowed');
@@ -30,9 +31,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = process.env.FINNHUB_KEY;
+    const token = process.env.FINNHUB_KEY || process.env.FINNHUB_API_KEY;
     if (!token) {
-      return sendError(res, 500, 'Server misconfigured: FINNHUB_KEY missing.');
+      return sendError(res, 500, 'Server misconfigured: FINNHUB_KEY missing.', {
+        expected: ['FINNHUB_KEY', 'FINNHUB_API_KEY'],
+      });
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -44,11 +47,10 @@ export default async function handler(req, res) {
 
     const [candleRes, profileRes] = await Promise.all([fetch(candleUrl), fetch(profileUrl)]);
     if (!candleRes.ok) throw new Error(`Candle fetch failed: ${candleRes.status}`);
-    if (!profileRes.ok) throw new Error(`Profile fetch failed: ${profileRes.status}`);
 
     const [candles, profile] = await Promise.all([
       candleRes.json(),
-      profileRes.json(),
+      profileRes.ok ? profileRes.json() : Promise.resolve({}),
     ]);
 
     const hasNoData = candles?.s === 'no_data' || !Array.isArray(candles?.t);
@@ -94,6 +96,8 @@ export default async function handler(req, res) {
     return res.status(200).json(payload);
   } catch (error) {
     console.error('[api/market/history] failed', error);
-    return sendError(res, 500, 'Failed to fetch historical data.');
+    return sendError(res, 500, 'Failed to fetch historical data.', {
+      message: error?.message ?? String(error),
+    });
   }
 }

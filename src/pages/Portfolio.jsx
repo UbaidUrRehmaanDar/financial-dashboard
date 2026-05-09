@@ -10,20 +10,12 @@ import {
 import { cn } from '@/lib/util';
 import { supabase } from '@/lib/supabase';
 
-// ─── Mock prices ──────────────────────────────────────────────────────────────
+// ─── Mock prices (fallback only) ─────────────────────────────────────────────
 
-const CURRENT_PRICES = {
+const FALLBACK_PRICES = {
   AAPL: 189.30, MSFT: 415.50, TSLA: 177.90,
   NVDA: 890.00, GOOGL: 172.63, AMZN: 185.40, META: 502.30,
 };
-
-// ─── Initial holdings ─────────────────────────────────────────────────────────
-
-const INITIAL_HOLDINGS = [
-  { id: 1, symbol: 'AAPL', shares: 10, buyPrice: 155.00 },
-  { id: 2, symbol: 'MSFT', shares: 5,  buyPrice: 290.00 },
-  { id: 3, symbol: 'TSLA', shares: 8,  buyPrice: 210.00 },
-];
 
 // ─── Sector allocation mock data ──────────────────────────────────────────────
 
@@ -49,16 +41,16 @@ const ANALYTICS = [
 const fmt = (n) =>
   n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function calcRow(h) {
-  const current = CURRENT_PRICES[h.symbol] ?? h.buyPrice;
+function calcRow(h, livePrices = {}) {
+  const current = livePrices[h.symbol] ?? FALLBACK_PRICES[h.symbol] ?? h.buyPrice;
   const pnl     = (current - h.buyPrice) * h.shares;
-  const pnlPct  = ((current - h.buyPrice) / h.buyPrice) * 100;
+  const pnlPct  = h.buyPrice > 0 ? ((current - h.buyPrice) / h.buyPrice) * 100 : 0;
   const value   = current * h.shares;
   return { ...h, current, pnl, pnlPct, value };
 }
 
-function exportCSV(holdings) {
-  const rows = holdings.map(calcRow);
+function exportCSV(holdings, livePrices = {}) {
+  const rows = holdings.map((h) => calcRow(h, livePrices));
   const header = ['Symbol','Shares','Buy Price','Current Price','Value','P&L ($)','P&L (%)'];
   const lines  = rows.map((r) =>
     [r.symbol, r.shares, r.buyPrice.toFixed(2), r.current.toFixed(2),
@@ -336,35 +328,35 @@ function AddAssetModal({ onClose, onConfirm }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Portfolio() {
-  const [holdings,  setHoldings]  = useState(INITIAL_HOLDINGS);
-  const [showModal, setShowModal] = useState(false);
+  const [holdings,   setHoldings]   = useState([]);
+  const [livePrices, setLivePrices] = useState({});
+  const [showModal,  setShowModal]  = useState(false);
+
+  // ── Fetch live prices for all unique symbols ──────────────────────────────
+  const fetchPrices = async (symbols) => {
+    if (!symbols.length) return;
+    const results = await Promise.allSettled(
+      symbols.map((sym) =>
+        fetch(`/api/market/quote?symbol=${sym}`)
+          .then((r) => r.ok ? r.json() : null)
+          .catch(() => null),
+      ),
+    );
+    const map = {};
+    symbols.forEach((sym, i) => {
+      const val = results[i].status === 'fulfilled' ? results[i].value : null;
+      if (val?.price) map[sym] = val.price;
+    });
+    setLivePrices((prev) => ({ ...prev, ...map }));
+  };
 
   useEffect(() => {
     let active = true;
 
     const loadHoldings = async () => {
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: null } }));
-      }
-
-      console.log('Supabase auth.getSession: start (portfolio load)');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('❌ Supabase getSession Error (portfolio load):', sessionError);
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: sessionError } }));
-        }
-        return;
-      }
-      console.log('✅ Supabase getSession (portfolio load):', session);
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
       const userId = session.user.id;
-
-      console.log('Supabase portfolio.select: start');
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.select', lastDbOperation: 'portfolio.select', lastError: null, userId } }));
-      }
 
       const { data, error } = await supabase
         .from('portfolio')
@@ -372,40 +364,50 @@ export default function Portfolio() {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Supabase Select Error (portfolio):', {
-          code: error.code,
-          message: error.message,
-          hint: error.hint,
-          details: error.details
-        });
-        if (import.meta.env.DEV && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.select', lastDbOperation: 'portfolio.select', lastError: error } }));
-        }
-        return;
-      }
-
-      console.log('✅ Supabase Select Success (portfolio):', data);
+      if (error) { console.error('[portfolio load]', error); return; }
       if (!active) return;
+
       const mapped = (data || []).map((row) => ({
-        id: row.id,
-        symbol: row.symbol,
-        shares: row.quantity,
+        id:       row.id,
+        symbol:   row.symbol,
+        shares:   row.quantity,
         buyPrice: row.buy_price,
       }));
       setHoldings(mapped);
+
+      // Fetch live prices for all symbols
+      const symbols = [...new Set(mapped.map((h) => h.symbol))];
+      fetchPrices(symbols);
     };
 
     loadHoldings();
     return () => { active = false; };
   }, []);
 
-  const rows       = holdings.map(calcRow);
-  const totalValue = rows.reduce((s, r) => s + r.value, 0);
-  const totalCost  = rows.reduce((s, r) => s + r.shares * r.buyPrice, 0);
-  const totalPnl   = totalValue - totalCost;
+  // ── Delete holding from DB + local state ─────────────────────────────────
+  const handleDelete = async (id) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { error } = await supabase
+      .from('portfolio')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', session.user.id);
+
+    if (error) {
+      console.error('[portfolio delete]', error);
+      return;
+    }
+    setHoldings((prev) => prev.filter((h) => h.id !== id));
+  };
+
+  const rows        = holdings.map((h) => calcRow(h, livePrices));
+  const totalValue  = rows.reduce((s, r) => s + r.value, 0);
+  const totalCost   = rows.reduce((s, r) => s + r.shares * r.buyPrice, 0);
+  const totalPnl    = totalValue - totalCost;
   const totalPnlPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
-  const pnlUp      = totalPnl >= 0;
+  const pnlUp       = totalPnl >= 0;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -422,7 +424,7 @@ export default function Portfolio() {
             <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => exportCSV(holdings)} className="gap-2">
+            <Button variant="outline" onClick={() => exportCSV(holdings, livePrices)} className="gap-2">
               <Download className="w-4 h-4" /> Export CSV
             </Button>
             <Button onClick={() => setShowModal(true)} className="gap-2">
@@ -519,7 +521,7 @@ export default function Portfolio() {
                         </TableCell>
                         <TableCell>
                           <button
-                            onClick={() => setHoldings((prev) => prev.filter((h) => h.id !== row.id))}
+                            onClick={() => handleDelete(row.id)}
                             className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -557,7 +559,7 @@ export default function Portfolio() {
                   <p className="text-sm font-semibold tracking-tight">Sector Allocation</p>
                   <p className="text-xs text-muted-foreground mt-0.5">By portfolio weight</p>
                 </div>
-                <div className="h-56">
+                <div className="w-full min-h-[300px] h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie

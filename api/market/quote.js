@@ -6,6 +6,7 @@ const CACHE_TTL_SECONDS = 60;
 
 export default async function handler(req, res) {
   setCors(res);
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return sendError(res, 405, 'Method not allowed');
@@ -26,9 +27,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = process.env.FINNHUB_KEY;
+    const token = process.env.FINNHUB_KEY || process.env.FINNHUB_API_KEY;
     if (!token) {
-      return sendError(res, 500, 'Server misconfigured: FINNHUB_KEY missing.');
+      return sendError(res, 500, 'Server misconfigured: FINNHUB_KEY missing.', {
+        expected: ['FINNHUB_KEY', 'FINNHUB_API_KEY'],
+      });
     }
 
     const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${token}`;
@@ -43,10 +46,13 @@ export default async function handler(req, res) {
     ]);
 
     if (!quoteRes.ok) throw new Error(`Quote fetch failed: ${quoteRes.status}`);
-    if (!profileRes.ok) throw new Error(`Profile fetch failed: ${profileRes.status}`);
     if (!candleRes.ok) throw new Error(`Candle fetch failed: ${candleRes.status}`);
 
-    const [quote, profile, candle] = await Promise.all([quoteRes.json(), profileRes.json(), candleRes.json()]);
+    const [quote, profile, candle] = await Promise.all([
+      quoteRes.json(),
+      profileRes.ok ? profileRes.json() : Promise.resolve({}),
+      candleRes.json(),
+    ]);
 
     const candleVolume = Array.isArray(candle?.v) && candle.v.length > 0
       ? toNumber(candle.v[candle.v.length - 1], 0)
@@ -77,6 +83,8 @@ export default async function handler(req, res) {
     return res.status(200).json(payload);
   } catch (error) {
     console.error('[api/market/quote] failed', error);
-    return sendError(res, 500, 'Failed to fetch quote data.');
+    return sendError(res, 500, 'Failed to fetch quote data.', {
+      message: error?.message ?? String(error),
+    });
   }
 }
