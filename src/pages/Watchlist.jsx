@@ -11,6 +11,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { cn } from '@/lib/util';
+import { supabase } from '@/lib/supabase';
 
 // ─── Mock base data ───────────────────────────────────────────────────────────
 
@@ -134,25 +135,49 @@ export default function Watchlist() {
   }, [loading]);
 
   // ── Quick add ─────────────────────────────────────────────────────────────
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
     const sym = input.trim().toUpperCase();
     if (!sym) { setError('Enter a ticker symbol.'); return; }
     if (items.find((i) => i.id === sym)) { setError(`${sym} is already in your watchlist.`); return; }
     setError('');
-    const newItem = {
-      id:        sym,
-      symbol:    sym,
-      company:   COMPANY_NAMES[sym] ?? sym,
-      price:     BASE_PRICES[sym] ?? +(100 + Math.random() * 900).toFixed(2),
-      change24h: +(Math.random() * 4 - 2).toFixed(2),
-      flash:     false,
-    };
-    setItems((prev) => [newItem, ...prev]);
-    setInput('');
-    clearTimeout(toastTimer.current);
-    setToast(`${sym} added to watchlist`);
-    toastTimer.current = setTimeout(() => setToast(''), 2500);
+
+    // ── Auth check ──────────────────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setError('Please login first.'); return; }
+    const userId = session.user.id;
+
+    // ── Supabase insert ─────────────────────────────────────────────────────
+    const { data, error: dbError } = await supabase
+      .from('watchlist')
+      .insert({
+        user_id:      userId,
+        symbol:       sym,
+        company_name: COMPANY_NAMES[sym] ?? sym,
+      })
+      .select();
+
+    if (dbError) {
+      console.error('DB Insert Failed:', dbError);
+      setError('Save failed: ' + dbError.message);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const newItem = {
+        id:        data[0].id ?? sym,
+        symbol:    sym,
+        company:   COMPANY_NAMES[sym] ?? sym,
+        price:     BASE_PRICES[sym] ?? +(100 + Math.random() * 900).toFixed(2),
+        change24h: +(Math.random() * 4 - 2).toFixed(2),
+        flash:     false,
+      };
+      setItems((prev) => [newItem, ...prev]);
+      setInput('');
+      clearTimeout(toastTimer.current);
+      setToast(`${sym} added to watchlist`);
+      toastTimer.current = setTimeout(() => setToast(''), 2500);
+    }
   };
 
   const handleRemove = (id) => {

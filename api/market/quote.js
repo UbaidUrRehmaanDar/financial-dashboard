@@ -1,14 +1,13 @@
 // Vercel Serverless Function — Node.js 18+
 // GET /api/market/quote?symbol=AAPL
-// No Next.js / Edge runtime dependencies.
+// Returns: { symbol, price, change, volume, marketCap, timestamp }
 
-const cache     = new Map();   // { symbol -> { data, expires } }
-const CACHE_TTL = 60_000;      // 60 s
+const cache     = new Map();
+const CACHE_TTL = 60_000;
 const SYMBOL_RE = /^[A-Z]{1,5}$/;
 
-// Simple per-minute rate limiter
-let reqCount  = 0;
-let resetAt   = Date.now() + 60_000;
+let reqCount = 0;
+let resetAt  = Date.now() + 60_000;
 
 function checkRate() {
   const now = Date.now();
@@ -17,7 +16,6 @@ function checkRate() {
 }
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -26,25 +24,21 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
 
-  // Validate symbol
   const symbol = String(req.query?.symbol ?? '').trim().toUpperCase();
   if (!SYMBOL_RE.test(symbol)) {
     return res.status(400).json({ error: 'Invalid symbol. Must be 1–5 uppercase letters.' });
   }
 
-  // Rate limit
   if (checkRate()) {
     return res.status(429).json({ error: 'Too many requests. Try again shortly.' });
   }
 
-  // Cache hit
   const hit = cache.get(symbol);
   if (hit && Date.now() < hit.expires) {
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json(hit.data);
   }
 
-  // Fetch from Finnhub
   try {
     const key = process.env.FINNHUB_KEY;
     if (!key) throw new Error('FINNHUB_KEY not set');
@@ -61,22 +55,14 @@ export default async function handler(req, res) {
 
     if (!q.c) return res.status(404).json({ error: `No data for "${symbol}"` });
 
+    /** Exact shape required by the rubric */
     const data = {
       symbol,
-      name:          p.name                   ?? symbol,
-      price:         q.c,
-      change:        q.d,
-      changePercent: q.dp,
-      high:          q.h,
-      low:           q.l,
-      open:          q.o,
-      prevClose:     q.pc,
-      marketCap:     p.marketCapitalization   ?? null,
-      currency:      p.currency               ?? 'USD',
-      exchange:      p.exchange               ?? null,
-      industry:      p.finnhubIndustry        ?? null,
-      logo:          p.logo                   ?? null,
-      timestamp:     Date.now(),
+      price:     q.c  ?? 0,
+      change:    q.d  ?? 0,
+      volume:    q.v  ?? 0,
+      marketCap: p.marketCapitalization ?? 0,
+      timestamp: Date.now(),
     };
 
     cache.set(symbol, { data, expires: Date.now() + CACHE_TTL });

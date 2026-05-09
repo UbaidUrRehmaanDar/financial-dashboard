@@ -1,12 +1,21 @@
-const API_KEY = "d7usf29r01qnv95onodgd7usf29r01qnv95onoe0";
-const BASE = "https://finnhub.io/api/v1";
+/**
+ * DEPRECATED — do not call Finnhub directly from the frontend.
+ *
+ * All market data must flow through the serverless route:
+ *   GET /api/market/quote?symbol=AAPL
+ *
+ * Use the `useMarketQuote` hook instead:
+ *   import { useMarketQuote } from '@/hooks/useMarketQuote';
+ */
 
-export async function getQuote(symbol) {
-  const res = await fetch(`${BASE}/quote?symbol=${symbol}&token=${API_KEY}`);
-  return res.json();
+export function getQuote() {
+  throw new Error(
+    '[finnhub] Direct frontend calls are disabled. Use /api/market/quote via useMarketQuote hook.',
+  );
 }
 
-export async function getCandles(symbol, from, to, resolution = "60") {
-  const res = await fetch(`${BASE}/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}&token=${API_KEY}`);
-  return res.json();
+export function getCandles() {
+  throw new Error(
+    '[finnhub] Direct frontend calls are disabled. Use /api/market/quote via useMarketQuote hook.',
+  );
 }

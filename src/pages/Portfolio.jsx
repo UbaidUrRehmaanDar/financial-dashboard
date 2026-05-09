@@ -154,7 +154,7 @@ function AddAssetModal({ onClose, onConfirm }) {
           company_name: symbol,           // static for now; can be enriched later
           quantity,
           buy_price:    buyPrice,
-          buy_date:     new Date().toISOString(),
+          buy_date:     new Date().toISOString().split('T')[0],
         }])
         .select();                         // CRITICAL: returns the inserted row
 
