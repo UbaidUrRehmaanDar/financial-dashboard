@@ -129,7 +129,6 @@ export default function Auth() {
             Market<span className="opacity-40">IQ</span>
           </span>
         </div>
-        </div>
 
         <motion.div
           key={mode}

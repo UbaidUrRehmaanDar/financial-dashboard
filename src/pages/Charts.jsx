@@ -70,7 +70,7 @@ function ToggleBtn({ active, onClick, children }) {
       className={cn(
         'px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150',
         active
-          ? 'bg-white text-black'
+          ? 'bg-foreground text-background'
           : 'text-muted-foreground hover:text-foreground hover:bg-foreground/8',
       )}
     >
@@ -111,6 +111,7 @@ export default function Charts() {
   const isUp     = data.length > 1 && data[data.length - 1].value >= data[0].value;
   const color    = isUp ? '#10b981' : '#f43f5e';   // emerald / rose
   const gradId   = `grad-${asset}`;
+  const gridColor = 'var(--color-border)';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -157,8 +158,8 @@ export default function Charts() {
                     className={cn(
                       'px-3 py-1.5 text-sm font-mono rounded-md border transition-all duration-150',
                       asset === a.id
-                        ? 'bg-white text-black border-white'
-                        : 'border-border text-muted-foreground hover:border-zinc-600 hover:text-foreground',
+                        ? 'bg-foreground text-background border-foreground'
+                        : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground',
                     )}
                   >
                     {a.id}
@@ -171,14 +172,14 @@ export default function Charts() {
 
               <div className="flex flex-wrap gap-4">
                 {/* Chart type toggle */}
-                <div className="flex bg-zinc-900 border border-border rounded-lg p-1 gap-0.5">
+                <div className="flex bg-card border border-border rounded-lg p-1 gap-0.5">
                   {CHART_TYPES.map((t) => (
                     <ToggleBtn key={t} active={chartType === t} onClick={() => setChartType(t)}>{t}</ToggleBtn>
                   ))}
                 </div>
 
                 {/* Range toggle */}
-                <div className="flex bg-zinc-900 border border-border rounded-lg p-1 gap-0.5">
+                <div className="flex bg-card border border-border rounded-lg p-1 gap-0.5">
                   {RANGES.map((r) => (
                     <ToggleBtn key={r} active={range === r} onClick={() => setRange(r)}>{r}</ToggleBtn>
                   ))}
@@ -220,7 +221,7 @@ export default function Charts() {
               <ResponsiveContainer width="100%" height={320}>
                 {chartType === 'Line' ? (
                   <LineChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+                    <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} width={60}
                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)} />
@@ -235,7 +236,7 @@ export default function Charts() {
                         <stop offset="100%" stopColor={color} stopOpacity={0}    />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+                    <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} width={60}
                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)} />
@@ -244,7 +245,7 @@ export default function Charts() {
                   </AreaChart>
                 ) : (
                   <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+                    <CartesianGrid stroke={gridColor} strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fill: '#71717a', fontSize: 10, fontFamily: 'monospace' }} axisLine={false} tickLine={false} width={60}
                       tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)} />
