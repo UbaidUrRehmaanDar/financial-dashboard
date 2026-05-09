@@ -132,54 +132,38 @@ function AddAssetModal({ onClose, onConfirm }) {
     setError('');
 
     try {
-      // ── Auth check ──────────────────────────────────────────────────
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('You must be logged in to add assets.');
-        setSaving(false);
-        return;
-      }
+      if (!session) return alert("Please login first");
       const userId = session.user.id;
 
-      const symbol   = form.ticker.trim().toUpperCase();
-      const quantity = parseFloat(form.qty);
-      const buyPrice = parseFloat(form.buyPrice);
+      const symbol = form.ticker.trim();
+      const name = '';
+      const qty = form.qty;
+      const price = form.buyPrice;
 
-      // ── Supabase insert ─────────────────────────────────────────────
-      const { data, error: dbError } = await supabase
+      const { data, error } = await supabase
         .from('portfolio')
-        .insert([{
-          user_id:      userId,
-          symbol,
-          company_name: symbol,           // static for now; can be enriched later
-          quantity,
-          buy_price:    buyPrice,
-          buy_date:     new Date().toISOString().split('T')[0],
-        }])
-        .select();                         // CRITICAL: returns the inserted row
+        .insert({
+          user_id: userId,  // CRITICAL: must match auth.uid()
+          symbol: symbol.toUpperCase(),
+          company_name: name || symbol,
+          quantity: Number(qty),
+          buy_price: Number(price),
+          buy_date: new Date().toISOString().split('T')[0]
+        })
+        .select(); // Returns inserted row
 
-      if (dbError) {
-        console.error('[portfolio insert]', dbError);
-        setError('Failed to save: ' + dbError.message);
-        setSaving(false);
-        return;
+      if (error) { console.error('DB Error:', error); alert("Failed: " + error.message); return; }
+
+      if (data) {
+        const newHolding = {
+          id:       data[0].id,
+          symbol:   data[0].symbol,
+          shares:   data[0].quantity,
+          buyPrice: data[0].buy_price,
+        };
+        onConfirm(newHolding);
       }
-
-      if (!data || data.length === 0) {
-        setError('No data returned from database. Check RLS policies.');
-        setSaving(false);
-        return;
-      }
-
-      // ── Success: map DB row → local holding shape ───────────────────
-      const newHolding = {
-        id:       data[0].id,
-        symbol:   data[0].symbol,
-        shares:   data[0].quantity,
-        buyPrice: data[0].buy_price,
-      };
-
-      onConfirm(newHolding);
       onClose();
 
     } catch (err) {

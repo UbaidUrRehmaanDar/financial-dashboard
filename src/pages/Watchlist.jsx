@@ -142,26 +142,23 @@ export default function Watchlist() {
     if (items.find((i) => i.id === sym)) { setError(`${sym} is already in your watchlist.`); return; }
     setError('');
 
-    // ── Auth check ──────────────────────────────────────────────────────────
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setError('Please login first.'); return; }
+    if (!session) return alert("Please login first");
     const userId = session.user.id;
 
-    // ── Supabase insert ─────────────────────────────────────────────────────
-    const { data, error: dbError } = await supabase
+    const symbol = sym;
+    const name = COMPANY_NAMES[symbol] ?? symbol;
+
+    const { data, error } = await supabase
       .from('watchlist')
       .insert({
-        user_id:      userId,
-        symbol:       sym,
-        company_name: COMPANY_NAMES[sym] ?? sym,
+        user_id: userId,  // CRITICAL: must match auth.uid()
+        symbol: symbol.toUpperCase(),
+        company_name: name || symbol,
       })
       .select();
 
-    if (dbError) {
-      console.error('DB Insert Failed:', dbError);
-      setError('Save failed: ' + dbError.message);
-      return;
-    }
+    if (error) { console.error('DB Error:', error); alert("Failed: " + error.message); return; }
 
     if (data && data.length > 0) {
       const newItem = {
