@@ -1,43 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Eye, EyeOff, ChevronDown, Search } from 'lucide-react';
+import { Check, Eye, EyeOff, Camera, User } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
+import { Combobox } from '@/components/ui/combobox';
 import { cn } from '@/lib/util';
-
-// ─── Theme accent colours ─────────────────────────────────────────────────────
-
-const ACCENTS = [
-  { id: 'zinc',    label: 'Default',  hex: '#a1a1aa' },
-  { id: 'indigo',  label: 'Indigo',   hex: '#6366f1' },
-  { id: 'emerald', label: 'Emerald',  hex: '#10b981' },
-  { id: 'rose',    label: 'Rose',     hex: '#f43f5e' },
-  { id: 'amber',   label: 'Amber',    hex: '#f59e0b' },
-  { id: 'sky',     label: 'Sky',      hex: '#0ea5e9' },
-  { id: 'violet',  label: 'Violet',   hex: '#8b5cf6' },
-];
+import { supabase } from '@/lib/supabase';
 
 // ─── Currency options ─────────────────────────────────────────────────────────
 
 const CURRENCIES = [
-  { value: 'USD', label: 'US Dollar',        icon: '🇺🇸', description: 'United States' },
-  { value: 'EUR', label: 'Euro',             icon: '🇪🇺', description: 'European Union' },
-  { value: 'GBP', label: 'British Pound',    icon: '🇬🇧', description: 'United Kingdom' },
-  { value: 'PKR', label: 'Pakistani Rupee',  icon: '🇵🇰', description: 'Pakistan' },
-  { value: 'JPY', label: 'Japanese Yen',     icon: '🇯🇵', description: 'Japan' },
-  { value: 'CAD', label: 'Canadian Dollar',  icon: '🇨🇦', description: 'Canada' },
-  { value: 'AUD', label: 'Australian Dollar',icon: '🇦🇺', description: 'Australia' },
-  { value: 'CHF', label: 'Swiss Franc',      icon: '🇨🇭', description: 'Switzerland' },
+  { value: 'USD', label: 'US Dollar',         icon: '🇺🇸', description: 'United States' },
+  { value: 'EUR', label: 'Euro',              icon: '🇪🇺', description: 'European Union' },
+  { value: 'GBP', label: 'British Pound',     icon: '🇬🇧', description: 'United Kingdom' },
+  { value: 'PKR', label: 'Pakistani Rupee',   icon: '🇵🇰', description: 'Pakistan' },
+  { value: 'JPY', label: 'Japanese Yen',      icon: '🇯🇵', description: 'Japan' },
+  { value: 'CAD', label: 'Canadian Dollar',   icon: '🇨🇦', description: 'Canada' },
+  { value: 'AUD', label: 'Australian Dollar', icon: '🇦🇺', description: 'Australia' },
+  { value: 'CHF', label: 'Swiss Franc',       icon: '🇨🇭', description: 'Switzerland' },
 ];
 
 // ─── Password strength ────────────────────────────────────────────────────────
 
 function getStrength(pw) {
   if (!pw) return { level: 0, label: '', color: '' };
-  if (pw.length < 6) return { level: 1, label: 'Weak',   color: 'bg-rose-500' };
-  if (pw.length < 10 && !/[^a-zA-Z0-9]/.test(pw)) return { level: 2, label: 'Medium', color: 'bg-yellow-400' };
-  if (pw.length >= 10 && /[^a-zA-Z0-9]/.test(pw) && /[0-9]/.test(pw)) return { level: 3, label: 'Strong', color: 'bg-emerald-500' };
+  if (pw.length < 6)  return { level: 1, label: 'Weak',   color: 'bg-rose-500' };
+  if (pw.length < 10 && !/[^a-zA-Z0-9]/.test(pw))
+    return { level: 2, label: 'Medium', color: 'bg-yellow-400' };
+  if (pw.length >= 10 && /[^a-zA-Z0-9]/.test(pw) && /[0-9]/.test(pw))
+    return { level: 3, label: 'Strong',  color: 'bg-emerald-500' };
   return { level: 2, label: 'Medium', color: 'bg-yellow-400' };
 }
 
@@ -60,171 +51,6 @@ function Toggle({ enabled, onToggle }) {
         style={{ left: enabled ? 'calc(100% - 22px)' : '2px' }}
       />
     </button>
-  );
-}
-
-// ─── Theme Accent Slider ──────────────────────────────────────────────────────
-
-function AccentSlider({ value, onChange }) {
-  const idx      = ACCENTS.findIndex((a) => a.id === value);
-  const current  = ACCENTS[idx] ?? ACCENTS[0];
-  const trackRef = useRef(null);
-
-  const handleTrackClick = (e) => {
-    const rect  = trackRef.current.getBoundingClientRect();
-    const pct   = (e.clientX - rect.left) / rect.width;
-    const i     = Math.round(pct * (ACCENTS.length - 1));
-    onChange(ACCENTS[Math.max(0, Math.min(ACCENTS.length - 1, i))].id);
-  };
-
-  const thumbPct = (idx / (ACCENTS.length - 1)) * 100;
-
-  return (
-    <div className="space-y-3">
-      {/* Colour dots */}
-      <div className="flex items-center justify-between">
-        {ACCENTS.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => onChange(a.id)}
-            title={a.label}
-            className={cn(
-              'w-7 h-7 rounded-full border-2 transition-all duration-150',
-              value === a.id ? 'scale-125 border-foreground shadow-lg' : 'border-transparent hover:scale-110',
-            )}
-            style={{ background: a.hex }}
-          />
-        ))}
-      </div>
-
-      {/* Slider track */}
-      <div
-        ref={trackRef}
-        onClick={handleTrackClick}
-        className="relative h-2 rounded-full cursor-pointer"
-        style={{
-          background: `linear-gradient(to right, ${ACCENTS.map((a) => a.hex).join(', ')})`,
-        }}
-      >
-        {/* Thumb */}
-        <motion.div
-          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-background shadow-lg cursor-grab active:cursor-grabbing"
-          style={{ left: `${thumbPct}%`, background: current.hex, x: '-50%' }}
-          animate={{ left: `${thumbPct}%` }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        />
-      </div>
-
-      {/* Label */}
-      <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full" style={{ background: current.hex }} />
-        <span className="text-xs text-muted-foreground">{current.label}</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Pretty Combobox ──────────────────────────────────────────────────────────
-
-function Combobox({ value, onChange, options }) {
-  const [open,   setOpen]   = useState(false);
-  const [search, setSearch] = useState('');
-  const ref = useRef(null);
-
-  const selected = options.find((o) => o.value === value);
-  const filtered = options.filter(
-    (o) =>
-      o.label.toLowerCase().includes(search.toLowerCase()) ||
-      o.value.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  // Close on outside click
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  return (
-    <div ref={ref} className="relative">
-      {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => { setOpen((v) => !v); setSearch(''); }}
-        className={cn(
-          'w-full flex items-center justify-between gap-3',
-          'bg-background border border-border rounded-xl px-4 py-3',
-          'text-sm text-foreground transition-colors duration-150',
-          'hover:border-foreground/30 focus:outline-none',
-          open && 'border-foreground/40',
-        )}
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="text-lg leading-none">{selected?.flag}</span>
-          <span className="font-medium">{selected?.value}</span>
-          <span className="text-muted-foreground text-xs">{selected?.label}</span>
-        </div>
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-        </motion.span>
-      </button>
-
-      {/* Dropdown */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0,  scale: 1    }}
-            exit={{   opacity: 0, y: -8, scale: 0.97  }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className={cn(
-              'absolute z-50 top-full mt-2 w-full',
-              'bg-card border border-border rounded-xl shadow-2xl shadow-black/30',
-              'overflow-hidden',
-            )}
-          >
-            {/* Search */}
-            <div className="p-2 border-b border-border">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                <input
-                  autoFocus
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-2 text-xs text-foreground focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Options */}
-            <div className="max-h-52 overflow-y-auto py-1">
-              {filtered.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No results</p>
-              ) : (
-                filtered.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => { onChange(opt.value); setOpen(false); }}
-                    className={cn(
-                      'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-100',
-                      'hover:bg-foreground/5 text-left',
-                      value === opt.value && 'bg-foreground/8',
-                    )}
-                  >
-                    <span className="text-base leading-none">{opt.flag}</span>
-                    <span className="font-medium text-foreground">{opt.value}</span>
-                    <span className="text-muted-foreground text-xs flex-1">{opt.label}</span>
-                    {value === opt.value && <Check className="w-3.5 h-3.5 text-foreground flex-shrink-0" />}
-                  </button>
-                ))
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -253,52 +79,138 @@ function Field({ label, children }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Settings() {
-  const [name,     setName]     = useState('Ali Hamza');
-  const [nameErr,  setNameErr]  = useState('');
-  const email = 'ali@example.com';
+  // ── Auth user ──────────────────────────────────────────────────────────────
+  const [user,       setUser]       = useState(null);
+  const [loadingUser,setLoadingUser]= useState(true);
 
-  const [copied,   setCopied]   = useState(false);
-  const copyTimer = useRef(null);
+  // ── Profile ────────────────────────────────────────────────────────────────
+  const [name,       setName]       = useState('');
+  const [nameErr,    setNameErr]    = useState('');
+  const [avatarUrl,  setAvatarUrl]  = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const fileInputRef = useRef(null);
 
-  const [currency, setCurrency] = useState('USD');
-  const [accent,   setAccent]   = useState('zinc');
+  // ── Preferences ────────────────────────────────────────────────────────────
+  const [currency,   setCurrency]   = useState('USD');
 
+  // ── Notifications ──────────────────────────────────────────────────────────
   const [notifs, setNotifs] = useState({
     priceAlerts:     true,
     weeklyDigest:    false,
     securityUpdates: true,
   });
 
-  const [password, setPassword] = useState('');
-  const [showPw,   setShowPw]   = useState(false);
-  const [pwErr,    setPwErr]    = useState('');
+  // ── Password ───────────────────────────────────────────────────────────────
+  const [password,   setPassword]   = useState('');
+  const [showPw,     setShowPw]     = useState(false);
+  const [pwErr,      setPwErr]      = useState('');
   const strength = getStrength(password);
 
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
+  // ── Save state ─────────────────────────────────────────────────────────────
+  const [saving,     setSaving]     = useState(false);
+  const [saved,      setSaved]      = useState(false);
+  const [saveError,  setSaveError]  = useState('');
 
-  const handleNameBlur = () => {
-    setNameErr(name.trim().length < 2 ? 'Name must be at least 2 characters.' : '');
+  // ── Load real user on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      if (u) {
+        setUser(u);
+        // Populate from user_metadata if available
+        setName(u.user_metadata?.full_name ?? u.user_metadata?.name ?? '');
+        setAvatarUrl(u.user_metadata?.avatar_url ?? '');
+      }
+      setLoadingUser(false);
+    });
+  }, []);
+
+  // ── Avatar file picker ─────────────────────────────────────────────────────
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText('sk_live_abcdefghijklmnop').catch(() => {});
-    setCopied(true);
-    clearTimeout(copyTimer.current);
-    copyTimer.current = setTimeout(() => setCopied(false), 2000);
+  // ── Validation ─────────────────────────────────────────────────────────────
+  const handleNameBlur = () => {
+    setNameErr(name.trim().length < 2 ? 'Name must be at least 2 characters.' : '');
   };
 
   const handlePwBlur = () => {
     setPwErr(password && password.length < 8 ? 'Password must be at least 8 characters.' : '');
   };
 
-  const handleSave = () => {
+  // ── Save ───────────────────────────────────────────────────────────────────
+  const handleSave = async () => {
     if (nameErr || pwErr) return;
     setSaving(true);
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000); }, 600);
+    setSaveError('');
+
+    try {
+      // 1. Upload avatar if a new file was selected
+      let newAvatarUrl = avatarUrl;
+      if (avatarFile && user) {
+        const ext  = avatarFile.name.split('.').pop();
+        const path = `avatars/${user.id}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(path, avatarFile, { upsert: true });
+
+        if (uploadErr) throw new Error('Avatar upload failed: ' + uploadErr.message);
+
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+        newAvatarUrl = urlData.publicUrl;
+      }
+
+      // 2. Update display name + avatar in user_metadata
+      const updates = {};
+      if (name.trim())    updates.full_name   = name.trim();
+      if (newAvatarUrl)   updates.avatar_url  = newAvatarUrl;
+
+      if (Object.keys(updates).length) {
+        const { error: metaErr } = await supabase.auth.updateUser({ data: updates });
+        if (metaErr) throw new Error('Profile update failed: ' + metaErr.message);
+        setAvatarUrl(newAvatarUrl);
+        setAvatarFile(null);
+        setAvatarPreview('');
+      }
+
+      // 3. Change password if provided
+      if (password && password.length >= 8) {
+        const { error: pwError } = await supabase.auth.updateUser({ password });
+        if (pwError) throw new Error('Password update failed: ' + pwError.message);
+        setPassword('');
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const initials = name.trim().split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const displayName  = name.trim() || user?.email?.split('@')[0] || 'User';
+  const initials     = displayName.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+  const displayEmail = user?.email ?? '';
+  const currentAvatar = avatarPreview || avatarUrl;
+
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          className="w-8 h-8 border-2 border-border border-t-foreground rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -317,19 +229,50 @@ export default function Settings() {
 
           {/* ── Profile ─────────────────────────────────────────────── */}
           <Section title="Profile">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-foreground/10 border border-border flex items-center justify-center flex-shrink-0">
-                <span className="text-lg font-bold text-foreground tracking-tight">{initials}</span>
+            {/* Avatar */}
+            <div className="flex items-center gap-5">
+              <div className="relative flex-shrink-0">
+                <div className="w-20 h-20 rounded-full bg-foreground/10 border-2 border-border overflow-hidden flex items-center justify-center">
+                  {currentAvatar ? (
+                    <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl font-bold text-foreground">{initials}</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center hover:opacity-80 transition-opacity shadow-md"
+                  title="Change photo"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium mb-1">Avatar</p>
-                <p className="text-xs text-muted-foreground">Initials generated from your display name.</p>
+              <div>
+                <p className="text-sm font-semibold">{displayName}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{displayEmail}</p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-1 underline underline-offset-2"
+                >
+                  Change photo
+                </button>
               </div>
             </div>
 
+            {/* Display name */}
             <Field label="Display Name">
               <input
-                type="text" value={name}
+                type="text"
+                value={name}
                 onChange={(e) => { setName(e.target.value); setNameErr(''); }}
                 onBlur={handleNameBlur}
                 className={cn(
@@ -345,82 +288,16 @@ export default function Settings() {
               </AnimatePresence>
             </Field>
 
-            <Field label="Email">
-              <input type="email" value={email} readOnly
+            {/* Email — read only */}
+            <Field label="Email Address">
+              <input
+                type="email"
+                value={displayEmail}
+                readOnly
                 className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-muted-foreground focus:outline-none cursor-not-allowed"
               />
+              <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
             </Field>
-          </Section>
-
-          {/* ── API Key ──────────────────────────────────────────────── */}
-          <Section title="API Access">
-            <Field label="API Key">
-              <div className="relative">
-                <input type="text" value="sk_live_••••••••••••••••" readOnly
-                  className="w-full bg-background border border-border rounded-lg px-4 py-2.5 pr-24 text-sm font-mono text-muted-foreground focus:outline-none cursor-not-allowed"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                  <AnimatePresence mode="wait">
-                    {copied ? (
-                      <motion.span key="copied" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                        className="flex items-center gap-1 text-xs text-emerald-400 font-medium px-2">
-                        <Check className="w-3.5 h-3.5" /> Copied!
-                      </motion.span>
-                    ) : (
-                      <motion.button key="copy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={handleCopy}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-foreground/8">
-                        <Copy className="w-3.5 h-3.5" /> Copy
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </Field>
-          </Section>
-
-          {/* ── Appearance ───────────────────────────────────────────── */}
-          <Section title="Appearance">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Accent Colour</label>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ background: ACCENTS.find(a => a.id === accent)?.hex }} />
-                  <span className="text-xs text-muted-foreground">{ACCENTS.find(a => a.id === accent)?.label}</span>
-                </div>
-              </div>
-              {/* Colour dots */}
-              <div className="flex items-center justify-between">
-                {ACCENTS.map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() => setAccent(a.id)}
-                    title={a.label}
-                    className={cn(
-                      'w-7 h-7 rounded-full border-2 transition-all duration-150',
-                      accent === a.id ? 'scale-125 border-foreground shadow-lg' : 'border-transparent hover:scale-110',
-                    )}
-                    style={{ background: a.hex }}
-                  />
-                ))}
-              </div>
-              {/* Rainbow slider */}
-              <div className="relative h-8 flex items-center">
-                <div
-                  className="absolute inset-x-0 h-2 rounded-full"
-                  style={{ background: `linear-gradient(to right, ${ACCENTS.map(a => a.hex).join(', ')})` }}
-                />
-                <Slider
-                  value={ACCENTS.findIndex(a => a.id === accent)}
-                  onChange={(i) => setAccent(ACCENTS[i].id)}
-                  min={0}
-                  max={ACCENTS.length - 1}
-                  step={1}
-                  showValue={false}
-                  className="w-full [&>div:first-child]:hidden"
-                />
-              </div>
-            </div>
           </Section>
 
           {/* ── Preferences ──────────────────────────────────────────── */}
@@ -457,7 +334,8 @@ export default function Settings() {
             <Field label="New Password">
               <div className="relative">
                 <input
-                  type={showPw ? 'text' : 'password'} value={password}
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
                   onChange={(e) => { setPassword(e.target.value); setPwErr(''); }}
                   onBlur={handlePwBlur}
                   className={cn(
@@ -470,7 +348,9 @@ export default function Settings() {
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground">Leave blank to keep your current password.</p>
 
+              {/* Strength meter */}
               {password && (
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
                   <div className="flex gap-1">
@@ -503,27 +383,35 @@ export default function Settings() {
           {/* ── Save ─────────────────────────────────────────────────── */}
           <motion.div
             variants={{ hidden: { opacity: 0, y: 18 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}
-            className="flex justify-end"
+            className="space-y-3"
           >
-            <motion.div
-              animate={saved ? { scale: [1, 0.98, 1.05, 1] } : { scale: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Button onClick={handleSave} disabled={saving} className="gap-2 min-w-36">
-                <AnimatePresence mode="wait">
-                  {saved ? (
-                    <motion.span key="ok" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                      className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-400" /> Saved!
-                    </motion.span>
-                  ) : saving ? (
-                    <motion.span key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Saving…</motion.span>
-                  ) : (
-                    <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Save Changes</motion.span>
-                  )}
-                </AnimatePresence>
-              </Button>
-            </motion.div>
+            <AnimatePresence>
+              {saveError && (
+                <motion.p key="saveerr" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">
+                  {saveError}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <div className="flex justify-end">
+              <motion.div animate={saved ? { scale: [1, 0.98, 1.05, 1] } : { scale: 1 }} transition={{ duration: 0.5 }}>
+                <Button onClick={handleSave} disabled={saving} className="gap-2 min-w-36">
+                  <AnimatePresence mode="wait">
+                    {saved ? (
+                      <motion.span key="ok" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                        className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-400" /> Saved!
+                      </motion.span>
+                    ) : saving ? (
+                      <motion.span key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Saving…</motion.span>
+                    ) : (
+                      <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Save Changes</motion.span>
+                    )}
+                  </AnimatePresence>
+                </Button>
+              </motion.div>
+            </div>
           </motion.div>
 
         </motion.div>
