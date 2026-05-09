@@ -40,15 +40,15 @@ function Toggle({ enabled, onToggle }) {
       type="button"
       onClick={onToggle}
       className={cn(
-        'relative w-11 h-6 rounded-full border transition-colors duration-200 focus:outline-none',
-        enabled ? 'bg-foreground border-foreground' : 'bg-zinc-800 border-border',
+        'relative inline-flex w-11 h-6 rounded-full border-2 transition-colors duration-200 focus:outline-none flex-shrink-0',
+        enabled ? 'bg-foreground border-foreground' : 'bg-zinc-800 border-zinc-700',
       )}
     >
-      <motion.span
-        layout
-        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        className={cn('absolute top-0.5 w-5 h-5 rounded-full', enabled ? 'bg-background' : 'bg-zinc-500')}
-        style={{ left: enabled ? 'calc(100% - 22px)' : '2px' }}
+      <span
+        className={cn(
+          'inline-block w-4 h-4 rounded-full transition-transform duration-200 ease-in-out mt-0.5',
+          enabled ? 'translate-x-5 bg-background' : 'translate-x-0.5 bg-zinc-500',
+        )}
       />
     </button>
   );
@@ -149,35 +149,32 @@ export default function Settings() {
     setSaveError('');
 
     try {
-      // 1. Upload avatar if a new file was selected
-      let newAvatarUrl = avatarUrl;
-      if (avatarFile && user) {
-        const ext  = avatarFile.name.split('.').pop();
-        const path = `avatars/${user.id}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('avatars')
-          .upload(path, avatarFile, { upsert: true });
-
-        if (uploadErr) throw new Error('Avatar upload failed: ' + uploadErr.message);
-
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-        newAvatarUrl = urlData.publicUrl;
-      }
-
-      // 2. Update display name + avatar in user_metadata
       const updates = {};
-      if (name.trim())    updates.full_name   = name.trim();
-      if (newAvatarUrl)   updates.avatar_url  = newAvatarUrl;
 
-      if (Object.keys(updates).length) {
-        const { error: metaErr } = await supabase.auth.updateUser({ data: updates });
-        if (metaErr) throw new Error('Profile update failed: ' + metaErr.message);
-        setAvatarUrl(newAvatarUrl);
+      // 1. Convert avatar to base64 and store in metadata (no bucket needed)
+      if (avatarFile) {
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve, reject) => {
+          reader.onload  = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(avatarFile);
+        });
+        updates.avatar_url = base64;
+        setAvatarUrl(base64);
         setAvatarFile(null);
         setAvatarPreview('');
       }
 
-      // 3. Change password if provided
+      // 2. Display name
+      if (name.trim()) updates.full_name = name.trim();
+
+      // 3. Update metadata
+      if (Object.keys(updates).length) {
+        const { error: metaErr } = await supabase.auth.updateUser({ data: updates });
+        if (metaErr) throw new Error('Profile update failed: ' + metaErr.message);
+      }
+
+      // 4. Change password if provided
       if (password && password.length >= 8) {
         const { error: pwError } = await supabase.auth.updateUser({ password });
         if (pwError) throw new Error('Password update failed: ' + pwError.message);
