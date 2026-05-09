@@ -73,7 +73,6 @@ const LandingPage = () => {
           <button
             onClick={toggleTheme}
             className="flex-shrink-0 w-9 h-9 mr-3 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/8 transition-all duration-150"
-            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
           >
             <AnimatePresence mode="wait">
               {theme === 'dark' ? (

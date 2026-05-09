@@ -120,7 +120,6 @@ export default function Auth() {
         <button
           onClick={toggleTheme}
           className="absolute top-5 right-5 w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/8 transition-all duration-150"
-          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
         >
           <AnimatePresence mode="wait">
             {theme === 'dark' ? (

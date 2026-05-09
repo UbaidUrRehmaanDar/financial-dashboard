@@ -41,13 +41,13 @@ function Toggle({ enabled, onToggle }) {
       onClick={onToggle}
       className={cn(
         'relative inline-flex w-11 h-6 rounded-full border-2 transition-colors duration-200 focus:outline-none flex-shrink-0',
-        enabled ? 'bg-foreground border-foreground' : 'bg-zinc-800 border-zinc-700',
+        enabled ? 'bg-foreground border-foreground' : 'bg-border border-border',
       )}
     >
       <span
         className={cn(
           'inline-block w-4 h-4 rounded-full transition-transform duration-200 ease-in-out mt-0.5',
-          enabled ? 'translate-x-5 bg-background' : 'translate-x-0.5 bg-zinc-500',
+          enabled ? 'translate-x-5 bg-background' : 'translate-x-0.5 bg-muted',
         )}
       />
     </button>
@@ -352,7 +352,7 @@ export default function Settings() {
                 <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
                   <div className="flex gap-1">
                     {[1, 2, 3].map((lvl) => (
-                      <div key={lvl} className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                      <div key={lvl} className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
                         <motion.div
                           className={cn('h-full rounded-full', strength.level >= lvl ? strength.color : '')}
                           animate={{ width: strength.level >= lvl ? '100%' : '0%' }}

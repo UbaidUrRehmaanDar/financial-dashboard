@@ -131,7 +131,6 @@ function ThemeToggle({ theme, onToggle }) {
     <button
       onClick={onToggle}
       className="relative w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card active:scale-[0.93] transition-all duration-150 overflow-hidden"
-      title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
     >
       <AnimatePresence mode="wait">
         {theme === 'dark' ? (
@@ -232,7 +231,6 @@ export default function DashboardShell({ children, page }) {
             {/* Sign out */}
             <button
               onClick={handleSignOut}
-              title="Sign out"
               className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/8 active:scale-[0.93] transition-all duration-150"
             >
               <LogOut className="w-4 h-4" />
