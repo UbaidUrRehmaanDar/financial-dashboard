@@ -149,6 +149,12 @@ export default function Settings() {
     setSaveError('');
 
     try {
+      // Ensure we have a fresh session
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr || !session) {
+        throw new Error('Session expired. Please sign in again.');
+      }
+
       const updates = {};
 
       // 1. Convert avatar to base64 and store in metadata (no bucket needed)
@@ -156,22 +162,31 @@ export default function Settings() {
         const reader = new FileReader();
         const base64 = await new Promise((resolve, reject) => {
           reader.onload  = () => resolve(reader.result);
-          reader.onerror = reject;
+          reader.onerror = () => reject(new Error('Failed to read image file'));
           reader.readAsDataURL(avatarFile);
         });
         updates.avatar_url = base64;
-        setAvatarUrl(base64);
-        setAvatarFile(null);
-        setAvatarPreview('');
       }
 
-      // 2. Display name
-      if (name.trim()) updates.full_name = name.trim();
+      // 2. Display name — always include if set
+      const trimmedName = name.trim();
+      if (trimmedName) updates.full_name = trimmedName;
 
-      // 3. Update metadata
-      if (Object.keys(updates).length) {
-        const { error: metaErr } = await supabase.auth.updateUser({ data: updates });
+      // 3. Update metadata if anything changed
+      if (Object.keys(updates).length > 0) {
+        const { data: updated, error: metaErr } = await supabase.auth.updateUser({ data: updates });
         if (metaErr) throw new Error('Profile update failed: ' + metaErr.message);
+
+        // Refresh local state from the updated user
+        const updatedUser = updated?.user;
+        if (updatedUser) {
+          setUser(updatedUser);
+          setName(updatedUser.user_metadata?.full_name ?? '');
+          const newAvatar = updatedUser.user_metadata?.avatar_url ?? '';
+          setAvatarUrl(newAvatar);
+        }
+        setAvatarFile(null);
+        setAvatarPreview('');
       }
 
       // 4. Change password if provided
@@ -185,6 +200,7 @@ export default function Settings() {
       setTimeout(() => setSaved(false), 2500);
 
     } catch (err) {
+      console.error('[settings save]', err);
       setSaveError(err.message);
     } finally {
       setSaving(false);

@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       email,
       password,
       options: {
-        data: { display_name, currency_preference },
+        data: { display_name, currency_preference, role: 'investor' },
       },
     });
 

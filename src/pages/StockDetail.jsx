@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, Search, Building2, Plus, BarChart2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Search, Building2, Plus, BarChart2, Sparkles, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/util';
