@@ -1,177 +1,86 @@
-/**
- * Vercel Serverless Function — GET /api/market/history
- * Returns historical OHLCV data formatted for Recharts.
- *
- * Query params:
- *   symbol  — 1-5 uppercase letters (e.g. AAPL)
- *   range   — one of: 1D | 1W | 1M | 3M | 1Y
- *
- * Auth: Handled by Supabase with short-lived access tokens +
- *       long-lived refresh tokens (no custom JWT middleware needed).
- *
- * Pure Node.js 18+ Vercel Serverless — no next/server, no Edge runtime.
- */
-
-// ─── In-memory cache ──────────────────────────────────────────────────────────
-
-/** @type {Map<string, { data: object, expires: number }>} */
 const cache = new Map();
-const CACHE_TTL = 600_000; // 10 minutes
+const CACHE_TTL = 600_000;
+const SYMBOL_RE = /^[A-Z]{1,5}$/;
+const VALID_RANGES = new Set(['1D', '1W', '1M', '3M', '1Y']);
 
-// ─── Per-IP rate limiter ──────────────────────────────────────────────────────
-
-/** @type {Map<string, { count: number, resetAt: number }>} */
-const ipLimits = new Map();
-const MAX_REQ_PER_MIN = 20;
-
-/**
- * Returns true if the IP has exceeded the rate limit.
- * @param {string} ip
- * @returns {boolean}
- */
-function isRateLimited(ip) {
-  const now    = Date.now();
-  const entry  = ipLimits.get(ip) ?? { count: 0, resetAt: now + 60_000 };
-  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60_000; }
-  entry.count++;
-  ipLimits.set(ip, entry);
-  return entry.count > MAX_REQ_PER_MIN;
-}
-
-// ─── Range → Finnhub resolution + window ─────────────────────────────────────
-
-const RANGE_MAP = {
-  '1D': { resolution: '5',  seconds: 60 * 60 * 24        },
-  '1W': { resolution: '60', seconds: 60 * 60 * 24 * 7    },
-  '1M': { resolution: 'D',  seconds: 60 * 60 * 24 * 30   },
-  '3M': { resolution: 'W',  seconds: 60 * 60 * 24 * 90   },
-  '1Y': { resolution: 'M',  seconds: 60 * 60 * 24 * 365  },
+const RANGE_CONFIG = {
+  '1D': { resolution: '5', seconds: 86_400 },
+  '1W': { resolution: '60', seconds: 604_800 },
+  '1M': { resolution: 'D', seconds: 2_592_000 },
+  '3M': { resolution: 'W', seconds: 7_776_000 },
+  '1Y': { resolution: 'M', seconds: 31_536_000 },
 };
 
-const VALID_RANGES  = Object.keys(RANGE_MAP);
-const SYMBOL_RE     = /^[A-Z]{1,5}$/;
-
-// ─── CORS helper ──────────────────────────────────────────────────────────────
-
-/**
- * Set standard CORS + JSON headers.
- * @param {import('@vercel/node').VercelResponse} res
- */
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin',  '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Content-Type', 'application/json');
-}
-
-// ─── Main handler ─────────────────────────────────────────────────────────────
-
-/**
- * @param {import('@vercel/node').VercelRequest}  req
- * @param {import('@vercel/node').VercelResponse} res
- */
 export default async function handler(req, res) {
-  setCors(res);
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
-  // Preflight
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── Param validation ────────────────────────────────────────────────────
-  const symbol = String(req.query?.symbol ?? '').trim().toUpperCase();
-  const range  = String(req.query?.range  ?? '').trim().toUpperCase();
+  const symbol = req.query.symbol?.toString().toUpperCase();
+  const range = req.query.range?.toString().toUpperCase();
 
-  if (!SYMBOL_RE.test(symbol) || !VALID_RANGES.includes(range)) {
-    return res.status(400).json({ error: 'Valid symbol and range required' });
+  if (!SYMBOL_RE.test(symbol || '')) {
+    return res.status(400).json({ error: 'Invalid symbol. Use 1-5 uppercase letters.' });
   }
 
-  // ── Rate limiting ───────────────────────────────────────────────────────
-  const ip = req.headers['x-vercel-forwarded-for']
-          ?? req.headers['x-forwarded-for']
-          ?? req.socket?.remoteAddress
-          ?? 'unknown';
-
-  if (isRateLimited(ip)) {
-    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  if (!VALID_RANGES.has(range || '')) {
+    return res.status(400).json({ error: 'Invalid range. Use one of: 1D, 1W, 1M, 3M, 1Y.' });
   }
 
-  // ── Cache hit ───────────────────────────────────────────────────────────
+  console.log('[api/market/history]', { symbol, range, query: req.query });
+
   const cacheKey = `${symbol}_${range}`;
-  const cached   = cache.get(cacheKey);
-  if (cached && Date.now() < cached.expires) {
-    res.setHeader('X-Cache', 'HIT');
-    return res.status(200).json(cached.data);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return res.status(200).json(hit.data);
   }
 
-  // ── Fetch from Finnhub ──────────────────────────────────────────────────
   try {
-    const key = process.env.FINNHUB_KEY;
-    if (!key) throw new Error('FINNHUB_KEY environment variable is not set');
-
-    const { resolution, seconds } = RANGE_MAP[range];
-    const now  = Math.floor(Date.now() / 1000);
-    const from = now - seconds;
-
-    // Fetch candles + profile in parallel
-    const [candleRes, profileRes] = await Promise.all([
-      fetch(
-        `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${now}&token=${key}`
-      ),
-      fetch(
-        `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${key}`
-      ),
-    ]);
-
-    if (!candleRes.ok)  throw new Error(`Finnhub candle error: ${candleRes.status}`);
-    if (!profileRes.ok) throw new Error(`Finnhub profile error: ${profileRes.status}`);
-
-    const [candle, profile] = await Promise.all([candleRes.json(), profileRes.json()]);
-
-    // Graceful no-data handling
-    if (candle.s === 'no_data' || !candle.t?.length) {
-      const empty = {
-        symbol,
-        range,
-        data: [],
-        meta: {
-          currency:    profile.currency    ?? 'USD',
-          exchange:    profile.exchange    ?? null,
-          lastUpdated: Date.now(),
-        },
-      };
-      cache.set(cacheKey, { data: empty, expires: Date.now() + CACHE_TTL });
-      res.setHeader('X-Cache', 'MISS');
-      return res.status(200).json(empty);
+    const token = process.env.FINNHUB_KEY;
+    if (!token) {
+      return res.status(500).json({ error: 'Server misconfigured: FINNHUB_KEY missing.' });
     }
 
-    // Transform Finnhub arrays → Recharts-ready objects
-    const { o, h, l, c, v, t } = candle;
-    const ohlcv = t.map((ts, i) => ({
-      date:   new Date(ts * 1000).toISOString(),
-      open:   o[i],
-      high:   h[i],
-      low:    l[i],
-      close:  c[i],
-      volume: v[i],
-    }));
+    const now = Math.floor(Date.now() / 1000);
+    const { resolution, seconds } = RANGE_CONFIG[range];
+    const from = now - seconds;
+
+    const candleUrl = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${now}&token=${token}`;
+    const profileUrl = `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${token}`;
+
+    const [candleRes, profileRes] = await Promise.all([fetch(candleUrl), fetch(profileUrl)]);
+    if (!candleRes.ok) throw new Error(`Candle fetch failed: ${candleRes.status}`);
+    if (!profileRes.ok) throw new Error(`Profile fetch failed: ${profileRes.status}`);
+
+    const [candles, profile] = await Promise.all([candleRes.json(), profileRes.json()]);
+
+    const data = Array.isArray(candles?.t)
+      ? candles.t.map((ts, i) => ({
+          date: new Date(ts * 1000).toISOString(),
+          open: candles.o?.[i] ?? null,
+          high: candles.h?.[i] ?? null,
+          low: candles.l?.[i] ?? null,
+          close: candles.c?.[i] ?? null,
+          volume: candles.v?.[i] ?? null,
+        }))
+      : [];
 
     const payload = {
       symbol,
       range,
-      data: ohlcv,
+      data,
       meta: {
-        currency:    profile.currency    ?? 'USD',
-        exchange:    profile.exchange    ?? null,
+        currency: profile?.currency ?? 'USD',
+        exchange: profile?.exchange ?? null,
         lastUpdated: Date.now(),
       },
     };
 
-    cache.set(cacheKey, { data: payload, expires: Date.now() + CACHE_TTL });
-    res.setHeader('X-Cache', 'MISS');
+    cache.set(cacheKey, { data: payload, expiresAt: Date.now() + CACHE_TTL });
     return res.status(200).json(payload);
-
-  } catch (err) {
-    console.error('[history]', err.message);
-    return res.status(500).json({ error: 'Failed to fetch historical data' });
+  } catch (error) {
+    console.error('[api/market/history] failed', error);
+    return res.status(500).json({ error: 'Failed to fetch historical data.' });
   }
 }
