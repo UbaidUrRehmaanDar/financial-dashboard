@@ -34,6 +34,13 @@ export default function Auth() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Manual validation — no browser tooltips
+    if (!email.trim()) { setError('Please enter your email address.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Please enter a valid email address.'); return; }
+    if (!password) { setError('Please enter your password.'); return; }
+    if (mode === 'signup' && password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+
     setLoading(true);
     try {
       if (mode === 'login') {
@@ -187,10 +194,9 @@ export default function Auth() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                   autoComplete="email"
                   className={cn(
                     'w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2.5',
@@ -210,8 +216,6 @@ export default function Auth() {
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   className={cn(
                     'w-full bg-card border border-border rounded-lg pl-9 pr-10 py-2.5',
