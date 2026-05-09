@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, Eye, EyeOff, ChevronDown, Search } from 'lucide-react';
+import { Copy, Check, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Combobox } from '@/components/ui/combobox';
 import { cn } from '@/lib/util';
 
 // ─── Theme accent colours ─────────────────────────────────────────────────────
@@ -20,14 +22,14 @@ const ACCENTS = [
 // ─── Currency options ─────────────────────────────────────────────────────────
 
 const CURRENCIES = [
-  { value: 'USD', label: 'US Dollar',       flag: '🇺🇸' },
-  { value: 'EUR', label: 'Euro',            flag: '🇪🇺' },
-  { value: 'GBP', label: 'British Pound',   flag: '🇬🇧' },
-  { value: 'PKR', label: 'Pakistani Rupee', flag: '🇵🇰' },
-  { value: 'JPY', label: 'Japanese Yen',    flag: '🇯🇵' },
-  { value: 'CAD', label: 'Canadian Dollar', flag: '🇨🇦' },
-  { value: 'AUD', label: 'Australian Dollar',flag: '🇦🇺' },
-  { value: 'CHF', label: 'Swiss Franc',     flag: '🇨🇭' },
+  { value: 'USD', label: 'US Dollar',        icon: '🇺🇸', description: 'United States' },
+  { value: 'EUR', label: 'Euro',             icon: '🇪🇺', description: 'European Union' },
+  { value: 'GBP', label: 'British Pound',    icon: '🇬🇧', description: 'United Kingdom' },
+  { value: 'PKR', label: 'Pakistani Rupee',  icon: '🇵🇰', description: 'Pakistan' },
+  { value: 'JPY', label: 'Japanese Yen',     icon: '🇯🇵', description: 'Japan' },
+  { value: 'CAD', label: 'Canadian Dollar',  icon: '🇨🇦', description: 'Canada' },
+  { value: 'AUD', label: 'Australian Dollar',icon: '🇦🇺', description: 'Australia' },
+  { value: 'CHF', label: 'Swiss Franc',      icon: '🇨🇭', description: 'Switzerland' },
 ];
 
 // ─── Password strength ────────────────────────────────────────────────────────
@@ -380,15 +382,57 @@ export default function Settings() {
 
           {/* ── Appearance ───────────────────────────────────────────── */}
           <Section title="Appearance">
-            <Field label="Accent Colour">
-              <AccentSlider value={accent} onChange={setAccent} />
-            </Field>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Accent Colour</label>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ background: ACCENTS.find(a => a.id === accent)?.hex }} />
+                  <span className="text-xs text-muted-foreground">{ACCENTS.find(a => a.id === accent)?.label}</span>
+                </div>
+              </div>
+              {/* Colour dots */}
+              <div className="flex items-center justify-between">
+                {ACCENTS.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => setAccent(a.id)}
+                    title={a.label}
+                    className={cn(
+                      'w-7 h-7 rounded-full border-2 transition-all duration-150',
+                      accent === a.id ? 'scale-125 border-foreground shadow-lg' : 'border-transparent hover:scale-110',
+                    )}
+                    style={{ background: a.hex }}
+                  />
+                ))}
+              </div>
+              {/* Rainbow slider */}
+              <div className="relative h-8 flex items-center">
+                <div
+                  className="absolute inset-x-0 h-2 rounded-full"
+                  style={{ background: `linear-gradient(to right, ${ACCENTS.map(a => a.hex).join(', ')})` }}
+                />
+                <Slider
+                  value={ACCENTS.findIndex(a => a.id === accent)}
+                  onChange={(i) => setAccent(ACCENTS[i].id)}
+                  min={0}
+                  max={ACCENTS.length - 1}
+                  step={1}
+                  showValue={false}
+                  className="w-full [&>div:first-child]:hidden"
+                />
+              </div>
+            </div>
           </Section>
 
           {/* ── Preferences ──────────────────────────────────────────── */}
           <Section title="Preferences">
             <Field label="Currency">
-              <Combobox value={currency} onChange={setCurrency} options={CURRENCIES} />
+              <Combobox
+                value={currency}
+                onChange={setCurrency}
+                options={CURRENCIES}
+                placeholder="Select currency…"
+              />
             </Field>
           </Section>
 
