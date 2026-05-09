@@ -242,7 +242,7 @@ export default function StockDetail() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
 
         {/* ── Page title ──────────────────────────────────────────────── */}
         <motion.div
@@ -251,7 +251,7 @@ export default function StockDetail() {
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-          <h1 className="text-3xl font-bold tracking-tight">Stock Search &amp; Detail</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Stock Search &amp; Detail</h1>
         </motion.div>
 
         {/* ── Search Input ─────────────────────────────────────────────── */}
@@ -435,7 +435,7 @@ export default function StockDetail() {
                         <p className="text-sm font-semibold">{selectedTicker} — Price History</p>
                         <p className="text-xs text-muted-foreground mt-0.5">1 Year · Mock data</p>
                       </div>
-                      <div className="flex gap-1.5">
+                <div className="flex gap-1.5 flex-wrap justify-end">
                         {['1W','1M','3M','1Y'].map((r) => (
                           <span
                             key={r}

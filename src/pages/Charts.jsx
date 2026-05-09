@@ -115,7 +115,7 @@ export default function Charts() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
 
         {/* ── Page title ──────────────────────────────────────────────── */}
         <motion.div
@@ -124,7 +124,7 @@ export default function Charts() {
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-          <h1 className="text-3xl font-bold tracking-tight">Charts &amp; Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Charts &amp; Analytics</h1>
         </motion.div>
 
         {/* ── Controls card ────────────────────────────────────────────── */}
@@ -148,7 +148,7 @@ export default function Charts() {
               />
             </div>
 
-            <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex flex-wrap gap-3 sm:gap-4 items-center justify-between">
               {/* Asset select */}
               <div className="flex flex-wrap gap-2">
                 {filtered.map((a) => (
@@ -170,16 +170,16 @@ export default function Charts() {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3 sm:gap-4 w-full sm:w-auto">
                 {/* Chart type toggle */}
-                <div className="flex bg-card border border-border rounded-lg p-1 gap-0.5">
+                <div className="flex bg-card border border-border rounded-lg p-1 gap-0.5 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {CHART_TYPES.map((t) => (
                     <ToggleBtn key={t} active={chartType === t} onClick={() => setChartType(t)}>{t}</ToggleBtn>
                   ))}
                 </div>
 
                 {/* Range toggle */}
-                <div className="flex bg-card border border-border rounded-lg p-1 gap-0.5">
+                <div className="flex bg-card border border-border rounded-lg p-1 gap-0.5 w-full sm:w-auto overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {RANGES.map((r) => (
                     <ToggleBtn key={r} active={range === r} onClick={() => setRange(r)}>{r}</ToggleBtn>
                   ))}

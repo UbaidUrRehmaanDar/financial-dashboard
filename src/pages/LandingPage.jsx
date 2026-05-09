@@ -90,9 +90,9 @@ const LandingPage = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-24 px-6 max-w-5xl mx-auto text-center relative z-10">
+      <section className="pt-28 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-6 max-w-5xl mx-auto text-center relative z-10">
         <motion.h1
-          className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-4 sm:mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -101,7 +101,7 @@ const LandingPage = () => {
         </motion.h1>
 
         <motion.p
-          className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
+          className="text-base sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-7 sm:mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
@@ -125,9 +125,9 @@ const LandingPage = () => {
       </section>
 
       {/* Top Movers Grid */}
-      <section className="px-6 py-16 max-w-6xl mx-auto relative z-10">
+      <section className="px-4 sm:px-6 py-12 sm:py-16 max-w-6xl mx-auto relative z-10">
         <motion.h2
-          className="text-3xl font-bold tracking-tight mb-8 text-center"
+          className="text-2xl sm:text-3xl font-bold tracking-tight mb-6 sm:mb-8 text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -165,10 +165,10 @@ const LandingPage = () => {
       </section>
 
       {/* Platform Highlights */}
-      <section className="px-6 py-20 bg-gradient-to-b from-card to-background relative z-10">
+      <section className="px-4 sm:px-6 py-14 sm:py-20 bg-gradient-to-b from-card to-background relative z-10">
         <div className="max-w-6xl mx-auto">
           <motion.h2
-            className="text-3xl font-bold tracking-tight mb-12 text-center"
+            className="text-2xl sm:text-3xl font-bold tracking-tight mb-8 sm:mb-12 text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}

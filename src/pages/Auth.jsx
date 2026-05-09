@@ -114,7 +114,7 @@ export default function Auth() {
       </div>
 
       {/* ── Right panel — form ────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative bg-background">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-10 sm:py-12 relative bg-background">
 
         {/* Theme toggle — top right */}
         <button
@@ -135,7 +135,7 @@ export default function Auth() {
         </button>
 
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-2 mb-10">
+        <div className="lg:hidden flex items-center gap-2 mb-8 sm:mb-10">
           <LogoMark size={36} className="text-foreground" />
           <span className="font-bold text-sm tracking-tight">
             Market<span className="opacity-40">IQ</span>
@@ -151,7 +151,7 @@ export default function Auth() {
         >
           {/* Heading */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight mb-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-1">
               {mode === 'login' ? 'Sign in' : 'Create account'}
             </h1>
             <p className="text-sm text-muted-foreground">

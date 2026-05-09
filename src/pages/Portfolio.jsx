@@ -392,7 +392,7 @@ export default function Portfolio() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
 
         {/* ── Header ──────────────────────────────────────────────────── */}
         <motion.div
@@ -402,9 +402,9 @@ export default function Portfolio() {
         >
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-            <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Portfolio</h1>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Button variant="outline" onClick={() => exportCSV(holdings, livePrices)} className="gap-2">
               <Download className="w-4 h-4" /> Export CSV
             </Button>
@@ -465,7 +465,7 @@ export default function Portfolio() {
 
           <Card className="card-premium !p-0 overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[760px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Symbol</TableHead>

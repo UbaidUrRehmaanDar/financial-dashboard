@@ -261,9 +261,10 @@ function ExpandingSearch({ query, onChange }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => inputRef.current?.focus()}
-      className="relative flex items-center bg-card border border-border rounded-2xl cursor-pointer h-12"
+      className="relative flex items-center bg-card border border-border rounded-2xl cursor-pointer h-12 w-full sm:w-auto"
       style={{
-        width: isOpen ? 280 : 48,
+        width: isOpen ? '100%' : 48,
+        maxWidth: 280,
         transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
@@ -336,7 +337,7 @@ export default function MarketOverview() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8 sm:space-y-10">
 
         {/* ── Page Header + Filter ─────────────────────────────────────────── */}
         <motion.div
@@ -347,7 +348,7 @@ export default function MarketOverview() {
         >
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-            <h1 className="text-3xl font-bold tracking-tight">Market Overview</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Market Overview</h1>
           </div>
 
           <ExpandingSearch query={query} onChange={handleQuery} />
@@ -367,7 +368,7 @@ export default function MarketOverview() {
               <motion.div
                 key="grid"
                 layout
-                className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4"
+                className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4"
               >
                 <AnimatePresence>
                   {filteredSectors.map((sector, i) => (
@@ -458,7 +459,8 @@ export default function MarketOverview() {
           <h2 className="text-lg font-semibold tracking-tight mb-4">Global Indices</h2>
 
           <Card className="card-premium !p-0 overflow-hidden">
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Index</TableHead>
@@ -525,6 +527,7 @@ export default function MarketOverview() {
                 </AnimatePresence>
               </TableBody>
             </Table>
+            </div>
           </Card>
         </motion.section>
 

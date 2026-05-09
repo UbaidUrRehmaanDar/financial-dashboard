@@ -142,14 +142,14 @@ export default function Alerts() {
     <div className="min-h-screen bg-background text-foreground">
       <AlertToast alerts={triggered} />
 
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
           className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-            <h1 className="text-3xl font-bold tracking-tight">Price Alerts</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Price Alerts</h1>
           </div>
           <Button onClick={() => setShowForm((v) => !v)} className="gap-2">
             <Plus className="w-5 h-5" /> New Alert
@@ -175,7 +175,7 @@ export default function Alerts() {
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Trigger When</label>
-                    <div className="flex bg-foreground/5 border border-border rounded-lg p-1 gap-1">
+                    <div className="flex bg-foreground/5 border border-border rounded-lg p-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {['above', 'below'].map((d) => (
                         <button key={d} onClick={() => setDirection(d)}
                           className={cn('flex-1 py-1.5 text-xs font-medium rounded-md transition-all',

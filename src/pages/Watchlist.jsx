@@ -265,7 +265,7 @@ export default function Watchlist() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
 
         {/* ── Header + Quick Add ───────────────────────────────────────── */}
         <motion.div
@@ -276,7 +276,7 @@ export default function Watchlist() {
         >
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-            <h1 className="text-3xl font-bold tracking-tight">My Watchlist</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Watchlist</h1>
           </div>
 
           <form onSubmit={handleAdd} className="flex gap-3 flex-wrap">
@@ -327,7 +327,7 @@ export default function Watchlist() {
         >
           <Card className="card-premium !p-0 overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[620px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Symbol</TableHead>

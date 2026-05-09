@@ -45,13 +45,13 @@ function NavItem({ item, active, theme }) {
       layout
       transition={{ type: 'spring', stiffness: 500, damping: 35 }}
       className={cn(
-        'relative flex items-center gap-0 rounded-2xl cursor-pointer select-none overflow-hidden',
+        'relative flex items-center gap-0 rounded-2xl cursor-pointer select-none overflow-hidden shrink-0',
         'transition-colors duration-150',
         active
           ? isDark ? 'text-white'       : 'text-zinc-900'
           : isDark ? 'text-white/50 hover:text-white/80' : 'text-zinc-400 hover:text-zinc-700',
       )}
-      style={{ padding: '9px 12px' }}
+      style={{ padding: '8px 9px' }}
     >
       {/* Glass pill background */}
       <AnimatePresence>
@@ -83,7 +83,7 @@ function NavItem({ item, active, theme }) {
       {/* Label */}
       <motion.span
         layout
-        className="relative z-10 text-xs font-semibold whitespace-nowrap overflow-hidden"
+        className="relative z-10 text-xs font-semibold whitespace-nowrap overflow-hidden hidden sm:inline"
         animate={{
           width:      showLabel ? 'auto' : 0,
           opacity:    showLabel ? 1 : 0,
@@ -188,7 +188,7 @@ export default function DashboardShell({ children, page }) {
 
       {/* ── Topbar ──────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-background/75 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center justify-between px-6 h-14 gap-4">
+        <div className="flex items-center justify-between px-3 sm:px-6 h-14 gap-2 sm:gap-4">
 
           {/* Left — logo + breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
@@ -254,18 +254,18 @@ export default function DashboardShell({ children, page }) {
       </header>
 
       {/* ── Page content ────────────────────────────────────────────── */}
-      <main className="pb-28">
+      <main className="pb-24 sm:pb-28">
         <PageTransition pageKey={page}>
           {children}
         </PageTransition>
       </main>
 
       {/* ── Floating Bottom Nav ──────────────────────────────────────── */}
-      <div className="fixed bottom-5 left-0 right-0 flex justify-center z-50 pointer-events-none">
+      <div className="fixed bottom-3 sm:bottom-5 left-0 right-0 flex justify-center z-50 pointer-events-none px-2">
         <motion.nav
           layout
           transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-          className="pointer-events-auto flex items-center gap-1 px-2.5 py-2 rounded-[28px]"
+          className="pointer-events-auto flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-[24px] sm:rounded-[28px] max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={theme === 'dark' ? {
             background: 'linear-gradient(135deg, rgba(30,30,33,0.88) 0%, rgba(18,18,20,0.92) 100%)',
             backdropFilter: 'blur(20px)',

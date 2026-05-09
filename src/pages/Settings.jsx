@@ -227,11 +227,11 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
 
         <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
         </motion.div>
 
         <motion.div
@@ -243,7 +243,7 @@ export default function Settings() {
           {/* ── Profile ─────────────────────────────────────────────── */}
           <Section title="Profile">
             {/* Avatar */}
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4 sm:gap-5">
               <div className="relative flex-shrink-0">
                 <div className="w-20 h-20 rounded-full bg-foreground/10 border-2 border-border overflow-hidden flex items-center justify-center">
                   {currentAvatar ? (
