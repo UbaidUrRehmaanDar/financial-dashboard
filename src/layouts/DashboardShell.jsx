@@ -189,9 +189,9 @@ export default function DashboardShell({ children, page }) {
 
           {/* Left — logo + breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <LogoMark size={34} className="text-foreground" />
-              <span className="text-sm font-bold tracking-tight hidden sm:block">
+            <div className="flex items-center gap-2.5 flex-shrink-0">
+              <LogoMark size={38} className="text-foreground" />
+              <span className="text-base font-extrabold tracking-tight hidden sm:block" style={{ letterSpacing: '-0.03em' }}>
                 Market<span className="opacity-40">IQ</span>
               </span>
             </div>

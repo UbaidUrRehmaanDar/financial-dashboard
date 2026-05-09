@@ -8,6 +8,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { cn } from '@/lib/util';
+import { supabase } from '@/lib/supabase';
 
 // ─── Mock prices ──────────────────────────────────────────────────────────────
 
@@ -108,9 +109,10 @@ function PieTooltip({ active, payload }) {
 const EMPTY_FORM = { step: 1, ticker: '', qty: '', buyPrice: '' };
 
 function AddAssetModal({ onClose, onConfirm }) {
-  const [form,  setForm]  = useState(EMPTY_FORM);
-  const [dir,   setDir]   = useState(1);
-  const [error, setError] = useState('');
+  const [form,   setForm]   = useState(EMPTY_FORM);
+  const [dir,    setDir]    = useState(1);
+  const [error,  setError]  = useState('');
+  const [saving, setSaving] = useState(false);
 
   const next = () => {
     setError('');
@@ -125,9 +127,66 @@ function AddAssetModal({ onClose, onConfirm }) {
 
   const back = () => { setError(''); setDir(-1); setForm((f) => ({ ...f, step: f.step - 1 })); };
 
-  const confirm = () => {
-    onConfirm({ id: Date.now(), symbol: form.ticker.trim().toUpperCase(), shares: Number(form.qty), buyPrice: Number(form.buyPrice) });
-    onClose();
+  const confirm = async () => {
+    setSaving(true);
+    setError('');
+
+    try {
+      // ── Auth check ──────────────────────────────────────────────────
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('You must be logged in to add assets.');
+        setSaving(false);
+        return;
+      }
+      const userId = session.user.id;
+
+      const symbol   = form.ticker.trim().toUpperCase();
+      const quantity = parseFloat(form.qty);
+      const buyPrice = parseFloat(form.buyPrice);
+
+      // ── Supabase insert ─────────────────────────────────────────────
+      const { data, error: dbError } = await supabase
+        .from('portfolio')
+        .insert([{
+          user_id:      userId,
+          symbol,
+          company_name: symbol,           // static for now; can be enriched later
+          quantity,
+          buy_price:    buyPrice,
+          buy_date:     new Date().toISOString(),
+        }])
+        .select();                         // CRITICAL: returns the inserted row
+
+      if (dbError) {
+        console.error('[portfolio insert]', dbError);
+        setError('Failed to save: ' + dbError.message);
+        setSaving(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setError('No data returned from database. Check RLS policies.');
+        setSaving(false);
+        return;
+      }
+
+      // ── Success: map DB row → local holding shape ───────────────────
+      const newHolding = {
+        id:       data[0].id,
+        symbol:   data[0].symbol,
+        shares:   data[0].quantity,
+        buyPrice: data[0].buy_price,
+      };
+
+      onConfirm(newHolding);
+      onClose();
+
+    } catch (err) {
+      console.error('[portfolio confirm]', err);
+      setError('Unexpected error: ' + err.message);
+      setSaving(false);
+    }
   };
 
   return (
@@ -238,7 +297,9 @@ function AddAssetModal({ onClose, onConfirm }) {
             <div className="flex-1" />
             {form.step < 3
               ? <Button onClick={next} className="gap-1.5">Next <ChevronRight className="w-4 h-4" /></Button>
-              : <Button onClick={confirm} className="gap-1.5"><Check className="w-4 h-4" /> Confirm</Button>
+              : <Button onClick={confirm} disabled={saving} className="gap-1.5">
+                  {saving ? 'Saving…' : <><Check className="w-4 h-4" /> Confirm</>}
+                </Button>
             }
           </div>
         </Card>

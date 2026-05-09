@@ -78,7 +78,7 @@ export default function Auth() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <LogoMark size={38} className="text-white" />
+          <LogoMark size={44} className="text-white" />
           <span className="font-bold text-sm tracking-tight text-white">
             Market<span className="opacity-50">IQ</span>
           </span>
@@ -124,7 +124,7 @@ export default function Auth() {
 
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-10">
-          <LogoMark size={32} className="text-foreground" />
+          <LogoMark size={36} className="text-foreground" />
           <span className="font-bold text-sm tracking-tight">
             Market<span className="opacity-40">IQ</span>
           </span>
