@@ -190,7 +190,7 @@ export default function DashboardShell({ children, page }) {
           {/* Left — logo + breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center gap-2 flex-shrink-0">
-              <LogoMark size={28} className="text-foreground" />
+              <LogoMark size={34} className="text-foreground" />
               <span className="text-sm font-bold tracking-tight hidden sm:block">
                 Market<span className="opacity-40">IQ</span>
               </span>

@@ -1,133 +1,90 @@
-/**
- * Vercel Serverless Function — GET /api/market/quote?symbol=AAPL
- * Public endpoint. Fetches quote + profile from Finnhub with in-memory cache + rate limiting.
- */
+// Vercel Serverless Function — Node.js 18+
+// GET /api/market/quote?symbol=AAPL
+// No Next.js / Edge runtime dependencies.
 
-/** @type {Map<string, { data: object, expires: number }>} */
-const cache = new Map();
+const cache     = new Map();   // { symbol -> { data, expires } }
+const CACHE_TTL = 60_000;      // 60 s
+const SYMBOL_RE = /^[A-Z]{1,5}$/;
 
-/** Rate limiter state */
-const rateLimit = {
-  count: 0,
-  resetAt: Date.now() + 60_000,
-};
+// Simple per-minute rate limiter
+let reqCount  = 0;
+let resetAt   = Date.now() + 60_000;
 
-const CACHE_TTL   = 60_000;  // 60 seconds
-const MAX_REQ_MIN = 30;
-const SYMBOL_RE   = /^[A-Z]{1,5}$/;
+function checkRate() {
+  const now = Date.now();
+  if (now > resetAt) { reqCount = 0; resetAt = now + 60_000; }
+  return ++reqCount > 30;
+}
 
-/**
- * Set standard CORS + JSON headers.
- * @param {import('@vercel/node').VercelResponse} res
- */
-function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin',  '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Content-Type', 'application/json');
-}
 
-/**
- * Check and update rate limiter. Returns true if request should be blocked.
- * @returns {boolean}
- */
-function isRateLimited() {
-  const now = Date.now();
-  if (now > rateLimit.resetAt) {
-    rateLimit.count   = 0;
-    rateLimit.resetAt = now + 60_000;
-  }
-  rateLimit.count++;
-  return rateLimit.count > MAX_REQ_MIN;
-}
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
 
-/**
- * Main handler.
- * @param {import('@vercel/node').VercelRequest}  req
- * @param {import('@vercel/node').VercelResponse} res
- */
-export default async function handler(req, res) {
-  setCorsHeaders(res);
-
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // ── Symbol validation ──────────────────────────────────────────────────────
-  const symbol = (req.query.symbol ?? '').trim().toUpperCase();
+  // Validate symbol
+  const symbol = String(req.query?.symbol ?? '').trim().toUpperCase();
   if (!SYMBOL_RE.test(symbol)) {
-    return res.status(400).json({
-      error: 'Invalid symbol. Must be 1–5 uppercase letters (e.g. AAPL).',
-    });
+    return res.status(400).json({ error: 'Invalid symbol. Must be 1–5 uppercase letters.' });
   }
 
-  // ── Rate limiting ──────────────────────────────────────────────────────────
-  if (isRateLimited()) {
-    return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+  // Rate limit
+  if (checkRate()) {
+    return res.status(429).json({ error: 'Too many requests. Try again shortly.' });
   }
 
-  // ── Cache check ────────────────────────────────────────────────────────────
-  const cached = cache.get(symbol);
-  if (cached && Date.now() < cached.expires) {
+  // Cache hit
+  const hit = cache.get(symbol);
+  if (hit && Date.now() < hit.expires) {
     res.setHeader('X-Cache', 'HIT');
-    return res.status(200).json(cached.data);
+    return res.status(200).json(hit.data);
   }
 
-  // ── Finnhub fetch ──────────────────────────────────────────────────────────
+  // Fetch from Finnhub
   try {
     const key = process.env.FINNHUB_KEY;
-    if (!key) throw new Error('FINNHUB_KEY environment variable is not set');
+    if (!key) throw new Error('FINNHUB_KEY not set');
 
     const base = 'https://finnhub.io/api/v1';
-    const [quoteRes, profileRes] = await Promise.all([
+    const [qr, pr] = await Promise.all([
       fetch(`${base}/quote?symbol=${symbol}&token=${key}`),
       fetch(`${base}/stock/profile2?symbol=${symbol}&token=${key}`),
     ]);
 
-    if (!quoteRes.ok || !profileRes.ok) {
-      throw new Error(`Finnhub responded with ${quoteRes.status} / ${profileRes.status}`);
-    }
+    if (!qr.ok || !pr.ok) throw new Error(`Finnhub error ${qr.status}/${pr.status}`);
 
-    const [quote, profile] = await Promise.all([quoteRes.json(), profileRes.json()]);
+    const [q, p] = await Promise.all([qr.json(), pr.json()]);
 
-    // Finnhub returns c=0 when symbol is unknown
-    if (!quote.c) {
-      return res.status(404).json({ error: `No data found for symbol "${symbol}"` });
-    }
+    if (!q.c) return res.status(404).json({ error: `No data for "${symbol}"` });
 
-    /** @type {object} */
     const data = {
       symbol,
-      name:          profile.name          ?? symbol,
-      price:         quote.c,
-      change:        quote.d,
-      changePercent: quote.dp,
-      high:          quote.h,
-      low:           quote.l,
-      open:          quote.o,
-      prevClose:     quote.pc,
-      volume:        profile.shareOutstanding ?? null,
-      marketCap:     profile.marketCapitalization ?? null,
-      currency:      profile.currency ?? 'USD',
-      exchange:      profile.exchange ?? null,
-      industry:      profile.finnhubIndustry ?? null,
-      logo:          profile.logo ?? null,
-      weburl:        profile.weburl ?? null,
+      name:          p.name                   ?? symbol,
+      price:         q.c,
+      change:        q.d,
+      changePercent: q.dp,
+      high:          q.h,
+      low:           q.l,
+      open:          q.o,
+      prevClose:     q.pc,
+      marketCap:     p.marketCapitalization   ?? null,
+      currency:      p.currency               ?? 'USD',
+      exchange:      p.exchange               ?? null,
+      industry:      p.finnhubIndustry        ?? null,
+      logo:          p.logo                   ?? null,
       timestamp:     Date.now(),
     };
 
-    // Store in cache
     cache.set(symbol, { data, expires: Date.now() + CACHE_TTL });
     res.setHeader('X-Cache', 'MISS');
-
     return res.status(200).json(data);
+
   } catch (err) {
-    console.error('[quote] Error:', err.message);
+    console.error('[quote]', err.message);
     return res.status(500).json({ error: 'Failed to fetch market data' });
   }
 }
