@@ -105,13 +105,95 @@ export default function Watchlist() {
   const [error,     setError]     = useState('');
   const toastTimer  = useRef(null);
 
-  // ── Simulate 1s initial load ──────────────────────────────────────────────
+  // ── Load from Supabase with 1s skeleton ───────────────────────────────────
   useEffect(() => {
-    const t = setTimeout(() => {
-      setItems(INITIAL_WATCHLIST);
+    let active = true;
+
+    const loadWatchlist = async () => {
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: null } }));
+      }
+
+      console.log('Supabase auth.getSession: start (watchlist load)');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('❌ Supabase getSession Error (watchlist load):', sessionError);
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: sessionError } }));
+        }
+        if (active) {
+          setItems(INITIAL_WATCHLIST);
+          setLoading(false);
+        }
+        return;
+      }
+      console.log('✅ Supabase getSession (watchlist load):', session);
+      if (!session) {
+        if (active) {
+          setItems(INITIAL_WATCHLIST);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const userId = session.user.id;
+
+      console.log('Supabase watchlist.select: start');
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'watchlist.select', lastDbOperation: 'watchlist.select', lastError: null, userId } }));
+      }
+
+      const { data, error } = await supabase
+        .from('watchlist')
+        .select('id, symbol, added_at')
+        .eq('user_id', userId)
+        .order('added_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Supabase Select Error (watchlist):', {
+          code: error.code,
+          message: error.message,
+          hint: error.hint,
+          details: error.details
+        });
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'watchlist.select', lastDbOperation: 'watchlist.select', lastError: error } }));
+        }
+        if (active) {
+          setItems(INITIAL_WATCHLIST);
+          setLoading(false);
+        }
+        return;
+      }
+
+      console.log('✅ Supabase Select Success (watchlist):', data);
+      if (!active) return;
+
+      const mapped = (data || []).map((row) => {
+        const symbol = row.symbol?.toUpperCase?.() || row.symbol;
+        const company = COMPANY_NAMES[symbol] || symbol;
+        return {
+          id: row.id ?? symbol,
+          symbol,
+          company,
+          price: BASE_PRICES[symbol] ?? +(100 + Math.random() * 900).toFixed(2),
+          change24h: +(Math.random() * 4 - 2).toFixed(2),
+          flash: false,
+        };
+      });
+
+      setItems(mapped);
       setLoading(false);
+    };
+
+    const t = setTimeout(() => {
+      if (active) loadWatchlist();
     }, 1000);
-    return () => clearTimeout(t);
+
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
   }, []);
 
   // ── Real-time price simulation ±0.3% every 2.5s ───────────────────────────
@@ -168,7 +250,7 @@ export default function Watchlist() {
     const payload = {
       user_id: userId, // CRITICAL
       symbol: formData.symbol?.toUpperCase?.() || formData.symbol,
-      company_name: formData.companyName || formData.symbol,
+      added_at: new Date().toISOString(),
     };
 
     console.log('Attempting insert:', payload);

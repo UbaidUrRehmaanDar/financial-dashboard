@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Plus, X, ChevronRight, ChevronLeft, Check, Briefcase, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -338,6 +338,67 @@ function AddAssetModal({ onClose, onConfirm }) {
 export default function Portfolio() {
   const [holdings,  setHoldings]  = useState(INITIAL_HOLDINGS);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadHoldings = async () => {
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: null } }));
+      }
+
+      console.log('Supabase auth.getSession: start (portfolio load)');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('❌ Supabase getSession Error (portfolio load):', sessionError);
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'supabase.auth.getSession', lastError: sessionError } }));
+        }
+        return;
+      }
+      console.log('✅ Supabase getSession (portfolio load):', session);
+      if (!session) return;
+
+      const userId = session.user.id;
+
+      console.log('Supabase portfolio.select: start');
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.select', lastDbOperation: 'portfolio.select', lastError: null, userId } }));
+      }
+
+      const { data, error } = await supabase
+        .from('portfolio')
+        .select('id, symbol, quantity, buy_price, company_name, buy_date')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Supabase Select Error (portfolio):', {
+          code: error.code,
+          message: error.message,
+          hint: error.hint,
+          details: error.details
+        });
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('debug:update', { detail: { lastApiCall: 'portfolio.select', lastDbOperation: 'portfolio.select', lastError: error } }));
+        }
+        return;
+      }
+
+      console.log('✅ Supabase Select Success (portfolio):', data);
+      if (!active) return;
+      const mapped = (data || []).map((row) => ({
+        id: row.id,
+        symbol: row.symbol,
+        shares: row.quantity,
+        buyPrice: row.buy_price,
+      }));
+      setHoldings(mapped);
+    };
+
+    loadHoldings();
+    return () => { active = false; };
+  }, []);
 
   const rows       = holdings.map(calcRow);
   const totalValue = rows.reduce((s, r) => s + r.value, 0);
