@@ -3,37 +3,41 @@
 @tailwind utilities;
 
 /* ── Dark theme (default) ─────────────────────────────────────────────────── */
-:root, .dark {
-  --color-background:        #09090b;
-  --color-foreground:        #fafafa;
-  --color-card:              #18181b;
-  --color-card-foreground:   #fafafa;
-  --color-primary:           #6366f1;
-  --color-primary-foreground:#ffffff;
-  --color-muted:             #71717a;
-  --color-muted-foreground:  #a1a1aa;
-  --color-border:            #27272a;
+:root {
+  --color-background:           #09090b;
+  --color-foreground:           #fafafa;
+  --color-card:                 #18181b;
+  --color-card-foreground:      #fafafa;
+  --color-primary:              #6366f1;
+  --color-primary-foreground:   #ffffff;
+  --color-muted:                #71717a;
+  --color-muted-foreground:     #a1a1aa;
+  --color-border:               #27272a;
 }
 
 /* ── Light theme ──────────────────────────────────────────────────────────── */
-.light {
-  --color-background:        #ffffff;
-  --color-foreground:        #09090b;
-  --color-card:              #f4f4f5;
-  --color-card-foreground:   #09090b;
-  --color-primary:           #6366f1;
-  --color-primary-foreground:#ffffff;
-  --color-muted:             #71717a;
-  --color-muted-foreground:  #52525b;
-  --color-border:            #e4e4e7;
+html.light {
+  --color-background:           #ffffff;
+  --color-foreground:           #09090b;
+  --color-card:                 #f4f4f5;
+  --color-card-foreground:      #09090b;
+  --color-primary:              #6366f1;
+  --color-primary-foreground:   #ffffff;
+  --color-muted:                #71717a;
+  --color-muted-foreground:     #52525b;
+  --color-border:               #e4e4e7;
 }
 
 @layer base {
   * { @apply border-border; }
+  html {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -49,9 +53,9 @@
 @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0%   { background-position: 0% 50%;   }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%;   }
 }
 
 .animated-gradient {

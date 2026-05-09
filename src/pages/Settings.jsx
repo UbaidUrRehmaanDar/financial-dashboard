@@ -204,7 +204,7 @@ export default function Settings() {
                     ) : (
                       <motion.button key="copy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-zinc-800">
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-foreground/8">
                         <Copy className="w-3.5 h-3.5" /> Copy
                       </motion.button>
                     )}

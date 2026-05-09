@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BarChart3, Search, Briefcase, BookMarked,
-  LineChart, Settings, Sun, Moon, LogOut,
+  Search, Briefcase, BookMarked,
+  LineChart, Settings, Sun, Moon, LogOut, Bell, BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/util';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/hooks/useTheme';
 import PageTransition from '@/components/PageTransition';
+import { LogoMark, LogoFull } from '@/components/Logo';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
@@ -19,7 +20,6 @@ const NAV_ITEMS = [
   { hash: 'charts',    label: 'Charts',    icon: LineChart  },
   { hash: 'settings',  label: 'Settings',  icon: Settings   },
 ];
-
 const PAGE_TITLES = {
   market:    'Market Overview',
   stock:     'Stock Detail',
@@ -29,11 +29,13 @@ const PAGE_TITLES = {
   settings:  'Settings',
 };
 
-// ─── Floating Nav Item ────────────────────────────────────────────────────────
+// ─── Nav Item ─────────────────────────────────────────────────────────────────
 
-function NavItem({ item, active }) {
+function NavItem({ item, active, theme }) {
   const Icon = item.icon;
   const [hovered, setHovered] = useState(false);
+  const showLabel = hovered || active;
+  const isDark = theme === 'dark';
 
   return (
     <motion.a
@@ -41,66 +43,122 @@ function NavItem({ item, active }) {
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
       layout
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
       className={cn(
-        'relative flex items-center justify-center gap-2 cursor-pointer select-none',
-        'rounded-2xl transition-colors duration-200',
+        'relative flex items-center gap-0 rounded-2xl cursor-pointer select-none overflow-hidden',
+        'transition-colors duration-150',
         active
-          ? 'bg-white/20 text-white shadow-lg'
-          : 'text-white/60 hover:text-white',
+          ? isDark ? 'text-white'       : 'text-zinc-900'
+          : isDark ? 'text-white/50 hover:text-white/80' : 'text-zinc-400 hover:text-zinc-700',
       )}
-      style={{ padding: '10px 14px' }}
+      style={{ padding: '9px 12px' }}
     >
-      {/* Glassmorphic hover background */}
+      {/* Glass pill background */}
       <AnimatePresence>
-        {(hovered || active) && (
+        {showLabel && (
           <motion.span
-            key="bg"
-            layoutId={active ? `active-${item.hash}` : undefined}
-            className={cn(
-              'absolute inset-0 rounded-2xl',
-              active
-                ? 'bg-white/15 backdrop-blur-md border border-white/20'
-                : 'bg-white/8 backdrop-blur-sm border border-white/10',
-            )}
-            initial={{ opacity: 0, scale: 0.85 }}
+            key="pill"
+            className="absolute inset-0 rounded-2xl"
+            style={active
+              ? isDark
+                ? { background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.22)' }
+                : { background: 'rgba(0,0,0,0.08)',       border: '1px solid rgba(0,0,0,0.12)' }
+              : isDark
+                ? { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }
+                : { background: 'rgba(0,0,0,0.05)',       border: '1px solid rgba(0,0,0,0.08)' }
+            }
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.85 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
           />
         )}
       </AnimatePresence>
 
-      {/* Icon — always visible */}
-      <motion.span layout className="relative z-10 flex-shrink-0">
-        <Icon className="w-5 h-5" />
-      </motion.span>
+      {/* Icon */}
+      <span className="relative z-10 flex-shrink-0">
+        <Icon className="w-[18px] h-[18px]" />
+      </span>
 
-      {/* Label — slides in on hover */}
-      <AnimatePresence>
-        {hovered && (
-          <motion.span
-            key="label"
-            initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-            animate={{ opacity: 1, width: 'auto', marginLeft: 2 }}
-            exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative z-10 text-xs font-semibold whitespace-nowrap overflow-hidden"
-          >
-            {item.label}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {/* Label */}
+      <motion.span
+        layout
+        className="relative z-10 text-xs font-semibold whitespace-nowrap overflow-hidden"
+        animate={{
+          width:      showLabel ? 'auto' : 0,
+          opacity:    showLabel ? 1 : 0,
+          marginLeft: showLabel ? 6 : 0,
+        }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      >
+        {item.label}
+      </motion.span>
 
       {/* Active dot */}
       {active && (
         <motion.span
           layoutId="activeDot"
-          className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white"
+          className={cn(
+            'absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full',
+            isDark ? 'bg-white' : 'bg-zinc-900',
+          )}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         />
       )}
     </motion.a>
+  );
+}
+
+// ─── Live Clock ───────────────────────────────────────────────────────────────
+
+function LiveClock() {
+  const [time, setTime] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="font-mono text-xs tabular-nums text-muted-foreground tracking-wide">
+      {time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+    </span>
+  );
+}
+
+// ─── Theme toggle with animated icon swap ─────────────────────────────────────
+
+function ThemeToggle({ theme, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="relative w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card active:scale-[0.93] transition-all duration-150 overflow-hidden"
+      title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+    >
+      <AnimatePresence mode="wait">
+        {theme === 'dark' ? (
+          <motion.span
+            key="sun"
+            initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
+            animate={{ rotate: 0,   opacity: 1, scale: 1   }}
+            exit={{    rotate:  90, opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="absolute"
+          >
+            <Sun className="w-4 h-4" />
+          </motion.span>
+        ) : (
+          <motion.span
+            key="moon"
+            initial={{ rotate: 90,  opacity: 0, scale: 0.5 }}
+            animate={{ rotate: 0,   opacity: 1, scale: 1   }}
+            exit={{    rotate: -90, opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="absolute"
+          >
+            <Moon className="w-4 h-4" />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </button>
   );
 }
 
@@ -119,76 +177,109 @@ export default function DashboardShell({ children, page }) {
     window.location.hash = '';
   };
 
-  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'U';
+  const initials  = user?.email ? user.email.slice(0, 2).toUpperCase() : 'U';
   const pageTitle = PAGE_TITLES[page] ?? 'Dashboard';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
 
       {/* ── Topbar ──────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between gap-4">
-        {/* Logo + title */}
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-white/10 border border-white/20 rounded-lg flex items-center justify-center">
-            <BarChart3 className="w-3.5 h-3.5 text-white" />
+      <header className="sticky top-0 z-30 bg-background/75 backdrop-blur-xl border-b border-border">
+        <div className="flex items-center justify-between px-6 h-14 gap-4">
+
+          {/* Left — logo + breadcrumb */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <LogoMark size={28} className="text-foreground" />
+              <span className="text-sm font-bold tracking-tight hidden sm:block">
+                Market<span className="opacity-40">IQ</span>
+              </span>
+            </div>
+
+            {/* Separator + page title */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-border text-lg font-light select-none hidden sm:block">/</span>
+              <motion.span
+                key={pageTitle}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-sm font-medium text-foreground truncate"
+              >
+                {pageTitle}
+              </motion.span>
+            </div>
           </div>
-          <h2 className="text-base font-semibold tracking-tight">{pageTitle}</h2>
-        </div>
 
-        {/* Right controls */}
-        <div className="flex items-center gap-2">
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card active:scale-[0.97] transition-all duration-150"
-            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
+          {/* Center — live clock */}
+          <div className="hidden md:flex items-center">
+            <LiveClock />
+          </div>
 
-          {/* Sign out */}
-          <button
-            onClick={handleSignOut}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card active:scale-[0.97] transition-all duration-150"
-            title="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          {/* Right — controls */}
+          <div className="flex items-center gap-1">
 
-          {/* Avatar */}
-          <a
-            href="#settings"
-            className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 active:scale-[0.97] transition-all duration-150"
-          >
-            <span className="text-xs font-bold text-white">{initials}</span>
-          </a>
+            {/* Theme toggle */}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-border mx-1" />
+
+            {/* Sign out */}
+            <button
+              onClick={handleSignOut}
+              title="Sign out"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-foreground/8 active:scale-[0.93] transition-all duration-150"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+
+            {/* User pill */}
+            <a
+              href="#settings"
+              className="flex items-center gap-2 pl-1.5 pr-3 h-9 rounded-full border border-border hover:bg-foreground/5 active:scale-[0.97] transition-all duration-150 ml-1"
+            >
+              <div className="w-6 h-6 rounded-full bg-foreground/15 border border-border flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-foreground leading-none">{initials}</span>
+              </div>
+              <span className="text-xs font-medium text-foreground hidden sm:block max-w-[100px] truncate">
+                {user?.email?.split('@')[0] ?? 'Account'}
+              </span>
+            </a>
+          </div>
+
         </div>
       </header>
 
       {/* ── Page content ────────────────────────────────────────────── */}
-      <main className="pb-32">
+      <main className="pb-28">
         <PageTransition pageKey={page}>
           {children}
         </PageTransition>
       </main>
 
       {/* ── Floating Bottom Nav ──────────────────────────────────────── */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+      <div className="fixed bottom-5 left-0 right-0 flex justify-center z-50 pointer-events-none">
         <motion.nav
           layout
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className={cn(
-            'flex items-center gap-1 px-3 py-2 rounded-3xl',
-            'bg-zinc-900/70 backdrop-blur-xl',
-            'border border-white/10',
-            'shadow-2xl shadow-black/40',
-          )}
-          style={{
-            background: 'linear-gradient(135deg, rgba(39,39,42,0.85) 0%, rgba(24,24,27,0.90) 100%)',
+          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+          className="pointer-events-auto flex items-center gap-1 px-2.5 py-2 rounded-[28px]"
+          style={theme === 'dark' ? {
+            background: 'linear-gradient(135deg, rgba(30,30,33,0.88) 0%, rgba(18,18,20,0.92) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
+          } : {
+            background: 'linear-gradient(135deg, rgba(244,244,245,0.92) 0%, rgba(255,255,255,0.95) 100%)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8)',
           }}
         >
           {NAV_ITEMS.map((item) => (
-            <NavItem key={item.hash} item={item} active={page === item.hash} />
+            <NavItem key={item.hash} item={item} active={page === item.hash} theme={theme} />
           ))}
         </motion.nav>
       </div>

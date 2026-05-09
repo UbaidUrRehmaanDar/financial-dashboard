@@ -71,7 +71,7 @@ function ToggleBtn({ active, onClick, children }) {
         'px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150',
         active
           ? 'bg-white text-black'
-          : 'text-muted-foreground hover:text-foreground hover:bg-zinc-800',
+          : 'text-muted-foreground hover:text-foreground hover:bg-foreground/8',
       )}
     >
       {children}

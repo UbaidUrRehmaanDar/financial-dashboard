@@ -151,7 +151,7 @@ function AddAssetModal({ onClose, onConfirm }) {
               <h2 className="text-lg font-bold tracking-tight">Add Asset</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Step {form.step} of 3</p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-zinc-800 transition-colors">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/8 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -357,7 +357,7 @@ export default function Portfolio() {
                     return (
                       <motion.tr
                         key={row.id} variants={fadeUp}
-                        className="border-b border-border transition-colors hover:bg-zinc-800/50"
+                        className="border-b border-border transition-colors hover:bg-foreground/5"
                       >
                         <TableCell><span className="font-mono font-semibold text-sm">{row.symbol}</span></TableCell>
                         <TableCell className="text-right font-mono tabular-nums text-sm">{row.shares}</TableCell>

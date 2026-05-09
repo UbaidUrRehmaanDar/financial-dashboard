@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Search } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -106,18 +106,61 @@ const isUp = (n) => n >= 0;
 
 function Sparkline({ bars, up }) {
   const max = Math.max(...bars);
+  const min = Math.min(...bars);
+  const range = max - min || 1;
+  const W = 200;
+  const H = 40;
+  const pad = 2;
+
+  // Build SVG path points
+  const points = bars.map((v, i) => {
+    const x = pad + (i / (bars.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - min) / range) * (H - pad * 2);
+    return [x, y];
+  });
+
+  const linePath = points
+    .map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`)
+    .join(' ');
+
+  const fillPath = `${linePath} L${points[points.length - 1][0].toFixed(1)},${H} L${points[0][0].toFixed(1)},${H} Z`;
+
+  const gradId = `spark-${up ? 'up' : 'dn'}-${bars[0]}`;
+  const color  = up ? '#10b981' : '#ef4444';
+
   return (
-    <div className="flex items-end gap-[2px] h-8 mt-3">
-      {bars.map((h, i) => (
-        <motion.div
-          key={i}
-          className={cn('flex-1 rounded-sm', up ? 'bg-emerald-500/70' : 'bg-red-500/70')}
-          style={{ height: `${(h / max) * 100}%` }}
-          initial={{ scaleY: 0, originY: 1 }}
-          animate={{ scaleY: 1 }}
-          transition={{ duration: 0.4, delay: i * 0.03, ease: 'easeOut' }}
+    <div className="mt-3 w-full" style={{ height: 40 }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        className="w-full h-full"
+      >
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor={color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <motion.path
+          d={fillPath}
+          fill={`url(#${gradId})`}
+          stroke="none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
         />
-      ))}
+        <motion.path
+          d={linePath}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        />
+      </svg>
     </div>
   );
 }
@@ -174,7 +217,7 @@ function MoverRow({ item, index }) {
       transition={{ duration: 0.3, delay: index * 0.04, ease: 'easeOut' }}
       className={cn(
         'flex items-center justify-between px-4 py-2.5 rounded-md',
-        'transition-colors duration-150 hover:bg-zinc-800/60 cursor-default',
+        'transition-colors duration-150 hover:bg-border cursor-default',
       )}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -201,6 +244,53 @@ function MoverRow({ item, index }) {
         </span>
       </div>
     </motion.div>
+  );
+}
+
+// ─── Expanding Search ─────────────────────────────────────────────────────────
+
+function ExpandingSearch({ query, onChange }) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef(null);
+
+  const isOpen = hovered || focused || !!query;
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => inputRef.current?.focus()}
+      className="relative flex items-center bg-card border border-border rounded-2xl cursor-pointer h-12"
+      style={{
+        width: isOpen ? 280 : 48,
+        transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+      {/* Icon — always absolutely centered in the 48px zone on the left */}
+      <div className="absolute left-0 w-12 h-12 flex items-center justify-center pointer-events-none flex-shrink-0">
+        <Search className="w-5 h-5 text-muted-foreground" />
+      </div>
+
+      {/* Input — sits after the icon zone */}
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder="Filter sectors or indices..."
+        className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none w-full min-w-0"
+        style={{
+          paddingLeft: 44,
+          paddingRight: 14,
+          opacity: isOpen ? 1 : 0,
+          transition: 'opacity 0.25s ease 0.1s',
+          pointerEvents: isOpen ? 'auto' : 'none',
+        }}
+      />
+    </div>
   );
 }
 
@@ -257,23 +347,10 @@ export default function MarketOverview() {
         >
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Dashboard</p>
-            <h1 className="text-3xl font-bold tracking-tight text-gradient">Market Overview</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Market Overview</h1>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              value={query}
-              onChange={handleQuery}
-              placeholder="Filter sectors or indices..."
-              className={cn(
-                'w-full bg-card border border-border rounded-lg pl-9 pr-4 py-2.5',
-                'text-sm text-foreground placeholder:text-muted-foreground',
-                'focus:outline-none transition-colors duration-150',
-              )}
-            />
-          </div>
+          <ExpandingSearch query={query} onChange={handleQuery} />
         </motion.div>
 
         {/* ── 1. Sector Performance Grid ───────────────────────────────────── */}

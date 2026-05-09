@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, TrendingUp, BarChart3, Shield, Zap } from 'luc
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/util';
+import { LogoMark } from '@/components/Logo';
 
 const FEATURES = [
   { icon: BarChart3, label: 'Real-time market data' },
@@ -77,10 +78,10 @@ export default function Auth() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-9 h-9 bg-white/10 border border-white/20 rounded-lg flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-semibold text-sm tracking-tight">MarketIQ</span>
+          <LogoMark size={32} className="text-white" />
+          <span className="font-bold text-sm tracking-tight text-white">
+            Market<span className="opacity-50">IQ</span>
+          </span>
         </div>
 
         {/* Main copy */}
@@ -123,10 +124,11 @@ export default function Auth() {
 
         {/* Mobile logo */}
         <div className="lg:hidden flex items-center gap-2 mb-10">
-          <div className="w-8 h-8 bg-white/10 border border-white/20 rounded-lg flex items-center justify-center">
-            <BarChart3 className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-semibold text-sm">MarketIQ</span>
+          <LogoMark size={28} className="text-foreground" />
+          <span className="font-bold text-sm tracking-tight">
+            Market<span className="opacity-40">IQ</span>
+          </span>
+        </div>
         </div>
 
         <motion.div

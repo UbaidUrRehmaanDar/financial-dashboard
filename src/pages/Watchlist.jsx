@@ -268,7 +268,7 @@ export default function Watchlist() {
                                 : { backgroundColor: 'transparent' }
                               }
                               transition={{ duration: 0.6 }}
-                              className="border-b border-border hover:bg-zinc-800/50 cursor-default"
+                              className="border-b border-border hover:bg-foreground/5 cursor-default"
                             >
                               <TableCell>
                                 <span className="font-mono font-semibold text-sm">{item.symbol}</span>
